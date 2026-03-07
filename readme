@@ -19,13 +19,13 @@ recommended_actions":
 "conclusion"
 
 
-"metadata": {
+"metadata": 
     "people_detected": 4,
     "overall_risk_score": 0.1,
-    "prediction": {
+    "prediction": 
       "likely_outcome": "confrontation_likely",
       "confidence": 0.9
-    }
+    
 
 
 in the /analyze folder

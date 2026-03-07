@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sentinel YOLO Detection</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0d0d0d;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+  h1 { font-size: 2rem; letter-spacing: 0.05em; margin-bottom: 6px; color: #00ff99; }
+  .subtitle { color: #888; margin-bottom: 32px; font-size: 0.95rem; }
+
+  .card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 28px;
+    width: 100%;
+    max-width: 640px;
+    margin-bottom: 24px;
+  }
+  h2 { font-size: 1.1rem; margin-bottom: 16px; color: #ccc; }
+
+  label { display: block; font-size: 0.82rem; color: #888; margin-bottom: 4px; margin-top: 14px; }
+  input[type="text"], input[type="number"], select {
+    width: 100%; padding: 9px 12px;
+    background: #111; border: 1px solid #333; border-radius: 8px;
+    color: #e0e0e0; font-size: 0.9rem; outline: none;
+  }
+  input[type="text"]:focus, input[type="number"]:focus { border-color: #00ff99; }
+
+  .drop-zone {
+    border: 2px dashed #333;
+    border-radius: 10px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-top: 14px;
+  }
+  .drop-zone:hover, .drop-zone.dragover { border-color: #00ff99; background: #0d1a13; }
+  .drop-zone p { color: #555; font-size: 0.9rem; }
+  .drop-zone p span { color: #00ff99; }
+  #file-name { margin-top: 8px; font-size: 0.82rem; color: #aaa; }
+  input[type="file"] { display: none; }
+
+  button {
+    margin-top: 20px; width: 100%; padding: 12px;
+    background: #00ff99; color: #000;
+    border: none; border-radius: 8px;
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button:hover:not(:disabled) { opacity: 0.85; }
+
+  .progress-wrap {
+    margin-top: 16px; display: none;
+    background: #111; border-radius: 8px; height: 8px; overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #00ff99, #00ccff);
+    transition: width 0.3s;
+  }
+  .status { margin-top: 10px; font-size: 0.85rem; color: #888; min-height: 20px; }
+
+  .result-section { display: none; width: 100%; max-width: 640px; }
+  .result-section video { width: 100%; border-radius: 10px; margin-top: 12px; background: #000; }
+
+  .summary-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-top: 16px;
+  }
+  .stat-box {
+    background: #111; border: 1px solid #2a2a2a; border-radius: 8px;
+    padding: 14px; text-align: center;
+  }
+  .stat-box .val { font-size: 1.6rem; font-weight: 700; color: #00ff99; }
+  .stat-box .key { font-size: 0.75rem; color: #666; margin-top: 2px; }
+
+  .detections-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.88rem; }
+  .detections-table th { text-align: left; color: #555; font-weight: 600; padding: 6px 8px; border-bottom: 1px solid #222; }
+  .detections-table td { padding: 6px 8px; border-bottom: 1px solid #1a1a1a; }
+  .detections-table tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+
+  .download-btn {
+    display: inline-block; margin-top: 12px; padding: 9px 20px;
+    background: #1a1a1a; border: 1px solid #00ff99; border-radius: 8px;
+    color: #00ff99; text-decoration: none; font-size: 0.88rem; width: auto;
+  }
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tab {
+    flex: 1; padding: 10px; border: 1px solid #2a2a2a; border-radius: 8px;
+    background: #111; color: #666; cursor: pointer; text-align: center;
+    font-size: 0.88rem; transition: all 0.2s; user-select: none;
+  }
+  .tab.active { border-color: #00ff99; color: #00ff99; background: #0d1a13; }
+</style>
+</head>
+<body>
+<h1>Sentinel YOLO</h1>
+<p class="subtitle">YOLOv8 object detection — upload a video or paste a YouTube URL</p>
+
+<div class="card">
+  <div class="tabs">
+    <div class="tab active" id="tab-upload" onclick="switchTab('upload')">Upload Video</div>
+    <div class="tab" id="tab-youtube" onclick="switchTab('youtube')">YouTube URL</div>
+  </div>
+
+  <!-- Upload panel -->
+  <div id="panel-upload">
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <p>Drop a video here or <span>click to browse</span></p>
+      <div id="file-name"></div>
+    </div>
+    <input type="file" id="file-input" accept="video/*" onchange="onFileSelect(this)" />
+  </div>
+
+  <!-- YouTube panel -->
+  <div id="panel-youtube" style="display:none;">
+    <label>YouTube URL</label>
+    <input type="text" id="yt-url" placeholder="https://www.youtube.com/watch?v=..." />
+  </div>
+
+  <!-- Shared options -->
+  <label>Model</label>
+  <select id="model-select">
+    <option value="yolov8n.pt">YOLOv8n — Nano (fastest)</option>
+    <option value="yolov8s.pt">YOLOv8s — Small</option>
+    <option value="yolov8m.pt">YOLOv8m — Medium</option>
+    <option value="yolov8l.pt">YOLOv8l — Large</option>
+    <option value="yolov8x.pt">YOLOv8x — Extra Large (most accurate)</option>
+  </select>
+
+  <label>Confidence threshold (0.1 – 0.9)</label>
+  <input type="number" id="conf" value="0.25" min="0.05" max="0.95" step="0.05" />
+
+  <button id="run-btn" onclick="runDetection()">Run Detection</button>
+
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-bar" id="progress-bar"></div>
+  </div>
+  <div class="status" id="status"></div>
+</div>
+
+<!-- Results -->
+<div class="result-section" id="result-section">
+  <div class="card">
+    <h2>Annotated Video</h2>
+    <video id="result-video" controls playsinline></video>
+    <a id="download-link" class="download-btn" href="#" download>Download video</a>
+  </div>
+  <div class="card" id="summary-card">
+    <h2>Detection Summary</h2>
+    <div class="summary-grid" id="summary-grid"></div>
+    <table class="detections-table" id="det-table">
+      <thead><tr><th>Class</th><th>Detections</th></tr></thead>
+      <tbody id="det-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  let selectedFile = null;
+  let currentTab = 'upload';
+
+  const COLORS = [
+    '#ff3838','#ff9d97','#ff701f','#ffb21d','#cfde31','#48f90a',
+    '#92cc17','#3ddb86','#1a9334','#00d4bb','#2c99a8','#00c2ff',
+    '#344593','#6473ff','#0018ec','#8438ff','#520085','#cb38ff',
+    '#ff95c8','#ff37c7',
+  ];
+  const color = (i) => COLORS[i % COLORS.length];
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('tab-upload').classList.toggle('active', tab === 'upload');
+    document.getElementById('tab-youtube').classList.toggle('active', tab === 'youtube');
+    document.getElementById('panel-upload').style.display = tab === 'upload' ? '' : 'none';
+    document.getElementById('panel-youtube').style.display = tab === 'youtube' ? '' : 'none';
+  }
+
+  function onFileSelect(input) {
+    selectedFile = input.files[0];
+    document.getElementById('file-name').textContent = selectedFile ? selectedFile.name : '';
+  }
+
+  // Drag & drop
+  const dz = document.getElementById('drop-zone');
+  dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', (e) => {
+    e.preventDefault(); dz.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('video/')) {
+      selectedFile = f;
+      document.getElementById('file-name').textContent = f.name;
+    }
+  });
+
+  function setStatus(msg, showBar = false) {
+    document.getElementById('status').textContent = msg;
+    document.getElementById('progress-wrap').style.display = showBar ? 'block' : 'none';
+  }
+
+  async function runDetection() {
+    const btn  = document.getElementById('run-btn');
+    const model = document.getElementById('model-select').value;
+    const conf  = document.getElementById('conf').value;
+
+    btn.disabled = true;
+    document.getElementById('result-section').style.display = 'none';
+
+    const fd = new FormData();
+    fd.append('model', model);
+    fd.append('conf', conf);
+
+    let url;
+    if (currentTab === 'upload') {
+      if (!selectedFile) { alert('Please select a video file first.'); btn.disabled = false; return; }
+      fd.append('file', selectedFile);
+      url = '/detect/upload';
+      setStatus('Uploading and processing… this may take a while.', true);
+    } else {
+      const ytUrl = document.getElementById('yt-url').value.trim();
+      if (!ytUrl) { alert('Please enter a YouTube URL.'); btn.disabled = false; return; }
+      fd.append('url', ytUrl);
+      url = '/detect/youtube';
+      setStatus('Downloading from YouTube and processing… this may take a while.', true);
+    }
+
+    // Fake progress animation while waiting
+    let pct = 0;
+    const bar = document.getElementById('progress-bar');
+    bar.style.width = '0%';
+    const ticker = setInterval(() => {
+      pct = Math.min(pct + Math.random() * 3, 88);
+      bar.style.width = pct + '%';
+    }, 600);
+
+    try {
+      const res = await fetch(url, { method: 'POST', body: fd });
+      clearInterval(ticker);
+      bar.style.width = '100%';
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Server error');
+      }
+
+      const data = await res.json();
+      setStatus('Done!');
+      showResults(data);
+    } catch (e) {
+      clearInterval(ticker);
+      setStatus('Error: ' + e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function showResults(data) {
+    const section = document.getElementById('result-section');
+    section.style.display = 'block';
+
+    const videoEl = document.getElementById('result-video');
+    const dlLink  = document.getElementById('download-link');
+    videoEl.src = data.result_video;
+    dlLink.href = data.result_video;
+    videoEl.load();
+
+    const s = data.summary;
+
+    // Summary grid
+    const grid = document.getElementById('summary-grid');
+    grid.innerHTML = '';
+    const stats = [
+      ['Total Frames', s.total_frames],
+      ['Total Detections', s.total_detections],
+      ['Classes Found', Object.keys(s.detections_per_class).length],
+      ['Processing Time', s.processing_time_sec + 's'],
+    ];
+    for (const [k, v] of stats) {
+      grid.innerHTML += `<div class="stat-box"><div class="val">${v}</div><div class="key">${k}</div></div>`;
+    }
+
+    // Detections table
+    const tbody = document.getElementById('det-body');
+    tbody.innerHTML = '';
+    const sorted = Object.entries(s.detections_per_class).sort((a, b) => b[1] - a[1]);
+    sorted.forEach(([cls, cnt], i) => {
+      tbody.innerHTML += `<tr>
+        <td><span class="badge" style="background:${color(i)}22;color:${color(i)}">${cls}</span></td>
+        <td>${cnt}</td>
+      </tr>`;
+    });
+  }
+</script>
+</body>
+</html>
