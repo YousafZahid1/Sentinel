@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Video, AlertTriangle, Maximize2, MapPin, Activity, Loader2 } from "lucide-react";
+import { AlertTriangle, Maximize2, MapPin, Activity, Loader2, WifiOff } from "lucide-react";
 import type { CameraState } from "@/hooks/useCameras";
 
 interface CameraPanelProps {
@@ -40,6 +40,7 @@ const CameraPanel = ({ cameras }: CameraPanelProps) => {
               } bg-mc-panel transition-all duration-200 ${isExpanded ? "mc-glow-cyan" : ""}`}
               onClick={() => setExpandedId((prev) => (prev === cam.id ? null : cam.id))}
             >
+              {/* Video feed */}
               <div
                 className={`relative bg-background mc-scanline flex items-center justify-center overflow-hidden ${
                   isExpanded ? "aspect-[16/10]" : "aspect-[16/9]"
@@ -56,20 +57,25 @@ const CameraPanel = ({ cameras }: CameraPanelProps) => {
                   />
                 )}
 
+                {/* Analyzing — subtle centered spinner, doesn't block video */}
                 {cam.status === "analyzing" && (
-                  <div className="absolute inset-0 bg-background/70 flex flex-col items-center justify-center gap-1 z-10">
-                    <Loader2 className="w-4 h-4 text-mc-cyan animate-spin" />
-                    <span className="font-mono text-[8px] text-mc-cyan">ANALYZING…</span>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 z-10 pointer-events-none">
+                    <div className="bg-background/60 px-2 py-1 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 text-mc-cyan animate-spin" />
+                      <span className="font-mono text-[7px] text-mc-cyan">ANALYZING</span>
+                    </div>
                   </div>
                 )}
 
+                {/* Error — small badge only, video still visible */}
                 {cam.status === "error" && (
-                  <div className="absolute inset-0 bg-background/70 flex flex-col items-center justify-center gap-1 z-10">
-                    <Video className="w-4 h-4 text-mc-red/50" />
-                    <span className="font-mono text-[8px] text-mc-red">ERROR</span>
+                  <div className="absolute top-6 right-1.5 flex items-center gap-0.5 bg-mc-red/80 px-1 py-0.5 z-20">
+                    <WifiOff className="w-2 h-2 text-white" />
+                    <span className="font-mono text-[7px] text-white font-bold">NO DATA</span>
                   </div>
                 )}
 
+                {/* CAM label + status dot */}
                 <div className="absolute top-1 left-1.5 flex items-center gap-1 z-20">
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
@@ -89,6 +95,7 @@ const CameraPanel = ({ cameras }: CameraPanelProps) => {
                   {ts}
                 </span>
 
+                {/* Risk badge (analysis done) */}
                 {cam.status === "done" && isAlert && (
                   <div className="absolute bottom-1 right-1.5 flex items-center gap-0.5 bg-mc-red/90 px-1 py-0.5 z-20">
                     <AlertTriangle className="w-2.5 h-2.5 text-destructive-foreground" />
@@ -98,11 +105,13 @@ const CameraPanel = ({ cameras }: CameraPanelProps) => {
                   </div>
                 )}
 
+                {/* REC badge */}
                 <div className="absolute bottom-1 left-1.5 flex items-center gap-0.5 bg-mc-red/70 px-1 py-0.5 z-20">
                   <span className="w-1 h-1 rounded-full bg-destructive-foreground animate-pulse" />
                   <span className="font-mono text-[7px] font-bold text-destructive-foreground tracking-widest">REC</span>
                 </div>
 
+                {/* Expand hover */}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -115,6 +124,7 @@ const CameraPanel = ({ cameras }: CameraPanelProps) => {
                 </button>
               </div>
 
+              {/* Info strip */}
               <div className="px-1.5 py-1 flex items-center justify-between bg-mc-surface border-t border-mc-panel-border">
                 <span className="font-mono text-[8px] text-muted-foreground truncate">{cam.id}</span>
                 <div className="flex items-center gap-1">
@@ -134,36 +144,67 @@ const CameraPanel = ({ cameras }: CameraPanelProps) => {
                   {cam.status === "analyzing" && (
                     <span className="font-mono text-[8px] text-mc-amber animate-pulse">…</span>
                   )}
+                  {cam.status === "error" && (
+                    <span className="font-mono text-[8px] text-mc-red">no data</span>
+                  )}
                 </div>
               </div>
 
-              {isExpanded && cam.status === "done" && cam.result && (
+              {/* Expanded detail — always show when clicked */}
+              {isExpanded && (
                 <div className="px-1.5 pb-2 pt-1.5 bg-mc-surface border-t border-mc-panel-border/80 space-y-1.5">
                   <div className="flex items-center gap-1.5">
                     <MapPin className="w-3 h-3 text-mc-cyan" />
                     <span className="font-mono text-[8px] text-muted-foreground/80 uppercase tracking-wider">
-                      {cam.id} — {cam.result.metadata.people_detected} person(s)
+                      Zone: {cam.id}
+                    </span>
+                    <span className="font-mono text-[8px] text-muted-foreground ml-auto">
+                      Stream: <span className="text-foreground/80">1080p / 30fps</span>
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Activity className="w-3 h-3 text-mc-amber" />
-                    <span className="font-mono text-[8px] text-muted-foreground">
-                      Outcome:{" "}
-                      <span className="text-mc-amber font-semibold">
-                        {cam.result.metadata.prediction.likely_outcome.replace(/_/g, " ")}
-                      </span>{" "}
-                      ({Math.round(cam.result.metadata.prediction.confidence * 100)}% conf)
-                    </span>
-                  </div>
-                  <p className="font-mono text-[8px] text-foreground/70 leading-relaxed line-clamp-3">
-                    {cam.result.conclusion}
-                  </p>
-                  {cam.result.recommended_actions.slice(0, 2).map((action, i) => (
-                    <div key={i} className="flex gap-1 font-mono text-[7px] text-mc-cyan/80">
-                      <span className="text-mc-amber">{i + 1}.</span>
-                      <span>{action}</span>
+
+                  {cam.status === "done" && cam.result ? (
+                    <>
+                      <div className="flex items-center gap-1.5">
+                        <Activity className="w-3 h-3 text-mc-amber" />
+                        <span className="font-mono text-[8px] text-muted-foreground">
+                          Outcome:{" "}
+                          <span className="text-mc-amber font-semibold">
+                            {cam.result.metadata.prediction.likely_outcome.replace(/_/g, " ")}
+                          </span>{" "}
+                          ({Math.round(cam.result.metadata.prediction.confidence * 100)}% conf)
+                        </span>
+                      </div>
+                      <p className="font-mono text-[8px] text-foreground/70 leading-relaxed line-clamp-3">
+                        {cam.result.conclusion}
+                      </p>
+                      {cam.result.recommended_actions.slice(0, 2).map((action, i) => (
+                        <div key={i} className="flex gap-1 font-mono text-[7px] text-mc-cyan/80">
+                          <span className="text-mc-amber">{i + 1}.</span>
+                          <span>{action}</span>
+                        </div>
+                      ))}
+                    </>
+                  ) : cam.status === "analyzing" ? (
+                    <div className="flex items-center gap-1.5">
+                      <Activity className="w-3 h-3 text-mc-amber" />
+                      <span className="font-mono text-[8px] text-mc-amber animate-pulse">
+                        Analysis in progress — results will appear shortly…
+                      </span>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Activity className="w-3 h-3 text-muted-foreground" />
+                        <span className="font-mono text-[8px] text-muted-foreground">
+                          Motion: <span className="text-foreground/80">Stable</span>
+                        </span>
+                      </div>
+                      <div className="font-mono text-[7px] text-muted-foreground/70 leading-relaxed">
+                        Analysis unavailable — ensure the backend is running and retry.
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
