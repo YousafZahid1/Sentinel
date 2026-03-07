@@ -1,0 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 4%;
+    --foreground: 200 20% 85%;
+
+    --card: 220 20% 7%;
+    --card-foreground: 200 20% 85%;
+
+    --popover: 220 20% 7%;
+    --popover-foreground: 200 20% 85%;
+
+    --primary: 200 100% 50%;
+    --primary-foreground: 220 20% 4%;
+
+    --secondary: 220 18% 10%;
+    --secondary-foreground: 200 15% 70%;
+
+    --muted: 220 15% 12%;
+    --muted-foreground: 200 10% 45%;
+
+    --accent: 220 18% 14%;
+    --accent-foreground: 200 20% 85%;
+
+    --destructive: 0 85% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 18% 12%;
+    --input: 220 18% 12%;
+    --ring: 200 100% 50%;
+
+    --radius: 0.25rem;
+
+    /* Mission Control tokens */
+    --mc-red: 0 85% 50%;
+    --mc-red-dim: 0 60% 18%;
+    --mc-amber: 35 95% 50%;
+    --mc-amber-dim: 35 60% 15%;
+    --mc-green: 145 70% 42%;
+    --mc-green-dim: 145 50% 12%;
+    --mc-cyan: 190 100% 45%;
+    --mc-cyan-dim: 190 60% 12%;
+    --mc-blue: 210 100% 55%;
+    --mc-blue-dim: 210 60% 14%;
+    --mc-panel: 220 20% 6%;
+    --mc-panel-border: 220 18% 14%;
+    --mc-surface: 220 20% 8%;
+    --mc-glow-red: 0 0 20px hsl(0 85% 50% / 0.3);
+    --mc-glow-cyan: 0 0 20px hsl(190 100% 45% / 0.2);
+    --mc-glow-amber: 0 0 15px hsl(35 95% 50% / 0.2);
+
+    --sidebar-background: 220 20% 5%;
+    --sidebar-foreground: 200 10% 45%;
+    --sidebar-primary: 200 100% 50%;
+    --sidebar-primary-foreground: 220 20% 4%;
+    --sidebar-accent: 220 18% 10%;
+    --sidebar-accent-foreground: 200 20% 85%;
+    --sidebar-border: 220 18% 12%;
+    --sidebar-ring: 200 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden;
+  }
+
+  /* Tactical scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--mc-panel));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--mc-panel-border));
+    border-radius: 0;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}
+
+@layer utilities {
+  .mc-panel {
+    background: hsl(var(--mc-panel));
+    border: 1px solid hsl(var(--mc-panel-border));
+  }
+
+  .mc-panel-header {
+    @apply px-3 py-1.5 border-b flex items-center justify-between;
+    border-color: hsl(var(--mc-panel-border));
+    background: hsl(var(--mc-surface));
+  }
+
+  .mc-panel-label {
+    @apply text-[10px] font-semibold uppercase tracking-[0.15em];
+    font-family: 'JetBrains Mono', monospace;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .mc-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .mc-glow-red {
+    box-shadow: var(--mc-glow-red);
+  }
+
+  .mc-glow-cyan {
+    box-shadow: var(--mc-glow-cyan);
+  }
+
+  .mc-pulse-red {
+    animation: mc-pulse-red 2s ease-in-out infinite;
+  }
+
+  .mc-pulse-amber {
+    animation: mc-pulse-amber 2.5s ease-in-out infinite;
+  }
+
+  .mc-scanline {
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      hsl(var(--foreground) / 0.02) 2px,
+      hsl(var(--foreground) / 0.02) 4px
+    );
+  }
+
+  @keyframes mc-pulse-red {
+    0%, 100% { border-color: hsl(var(--mc-red) / 0.6); }
+    50% { border-color: hsl(var(--mc-red) / 0.15); }
+  }
+
+  @keyframes mc-pulse-amber {
+    0%, 100% { border-color: hsl(var(--mc-amber) / 0.5); }
+    50% { border-color: hsl(var(--mc-amber) / 0.1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mc-pulse-red,
+    .mc-pulse-amber,
+    .animate-pulse {
+      animation: none;
+    }
+  }
+}
