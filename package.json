@@ -1,0 +1,16 @@
+{
+  "name": "sentinal-video-analysis",
+  "version": "1.0.0",
+  "description": "Minimal PoC: video upload → Gemini analysis → fight risk JSON",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "multer": "^1.4.5-lts.1"
+  }
+}

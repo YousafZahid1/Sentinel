@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentinal – Video emergency-risk analysis</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.25rem; margin-bottom: 1rem; }
+    form { margin-bottom: 1.5rem; }
+    input[type="file"] { display: block; margin-bottom: 0.75rem; }
+    button { padding: 0.5rem 1rem; background: #111; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    #status { margin: 1rem 0; min-height: 1.5rem; color: #666; }
+    #highlights { margin: 1rem 0; padding: 1rem; background: #f5f5f5; border-radius: 8px; }
+    #highlights dl { margin: 0; display: grid; gap: 0.5rem; }
+    #highlights dt { font-weight: 600; color: #333; }
+    #highlights dd { margin: 0 0 0.5rem 0; }
+    pre { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 8px; overflow: auto; font-size: 0.85rem; }
+    .error { color: #c00; }
+  </style>
+</head>
+<body>
+  <h1>Sentinal – Video emergency-risk analysis</h1>
+  <p style="color:#666; font-size:0.9rem; margin-bottom:1rem;">Choose a video file (MP4, MOV, or WebM) below, then click <strong>Analyze video</strong> to upload and run the analysis.</p>
+  <form id="form">
+    <input type="file" id="video" name="video" accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm" required>
+    <button type="submit" id="submit">Analyze video</button>
+  </form>
+  <div id="status"></div>
+  <div id="highlights" hidden></div>
+  <pre id="json" hidden></pre>
+
+  <script>
+    const form = document.getElementById('form');
+    const fileInput = document.getElementById('video');
+    const submitBtn = document.getElementById('submit');
+    const status = document.getElementById('status');
+    const highlights = document.getElementById('highlights');
+    const jsonPre = document.getElementById('json');
+
+    function setStatus(msg, isError) {
+      status.textContent = msg;
+      status.className = isError ? 'error' : '';
+    }
+
+    function showResult(data) {
+      const risk = data.overall_fight_risk_0_1;
+      const action = data.recommended_action?.action;
+      const outcome = data.prediction_next_5_10s?.likely_outcome;
+      const staffWhy = Array.isArray(data.recommended_action?.why)
+        ? data.recommended_action.why.join("; ")
+        : null;
+
+      highlights.innerHTML = `
+        <strong>Top fields</strong>
+        <dl>
+          <dt>overall_emergency_risk_0_1</dt>
+          <dd>${risk != null ? Number(risk).toFixed(2) : '—'}</dd>
+          <dt>recommended_action (who + what)</dt>
+          <dd>${
+            action
+              ? staffWhy
+                ? `${action} – ${staffWhy}`
+                : action
+              : '—'
+          }</dd>
+          <dt>prediction_next_5_10s.likely_outcome</dt>
+          <dd>${outcome ?? '—'}</dd>
+        </dl>
+      `;
+      highlights.hidden = false;
+      jsonPre.textContent = JSON.stringify(data, null, 2);
+      jsonPre.hidden = false;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const file = fileInput.files[0];
+      if (!file) {
+        setStatus('Please select a video file.', true);
+        return;
+      }
+
+      setStatus('Analyzing…');
+      submitBtn.disabled = true;
+      highlights.hidden = true;
+      jsonPre.hidden = true;
+
+      const formData = new FormData();
+      formData.append('video', file);
+
+      try {
+        const res = await fetch('/analyze', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          setStatus(data.error || 'Analysis failed', true);
+          return;
+        }
+        setStatus('Done.');
+        showResult(data);
+      } catch (err) {
+        setStatus(err.message || 'Request failed', true);
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

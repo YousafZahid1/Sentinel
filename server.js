@@ -1,0 +1,251 @@
+/**
+ * Sentinal – Video fight-risk analysis PoC
+ *
+ * Run:
+ *   1. cp .env.example .env  (then edit .env and set GEMINI_API_KEY=your_key)
+ *   2. npm install
+ *   3. npm start
+ *   4. Open http://localhost:3000
+ *
+ * Analyzes uploaded video (mp4/mov/webm) via Gemini; returns JSON only.
+ * No permanent video storage; files are deleted from Gemini after analysis
+ * (or expire automatically if delete is unavailable).
+ */
+
+import "dotenv/config";
+import express from "express";
+import multer from "multer";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
+import { GoogleGenAI, createUserContent, createPartFromUri } from "@google/genai";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PORT = Number(process.env.PORT) || 3000;
+const ALLOWED_MIMES = new Set(["video/mp4", "video/quicktime", "video/webm"]);
+const ALLOWED_EXT = new Set([".mp4", ".mov", ".webm"]);
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, "uploads");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `video-${Date.now()}${path.extname(file.originalname) || ".mp4"}`);
+  },
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ALLOWED_MIMES.has(file.mimetype) || ALLOWED_EXT.has(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Use mp4, mov, or webm."));
+    }
+  },
+});
+
+const ANALYSIS_PROMPT = `You are a safety analyst. Analyze this video (with audio) for overall emergency risk, including fights, falls, medical distress, and other serious incidents.
+
+Treat both "overall_fight_risk_0_1" and each "fight_risk_0_1" in the timeline as an OVERALL EMERGENCY RISK score from 0–1, where 0 = no meaningful risk and 1 = critical emergency.
+
+For "prediction_next_5_10s", if the situation looks like a FALL, focus the likely outcome and "why" phrases on potential injuries (e.g. minor bruise, head impact, possible fracture) and follow‑on risk. If it looks like a FIGHT or confrontation, focus the likely outcome and "why" phrases on escalation or de‑escalation of aggression (e.g. punches thrown, shoving, bystander intervention). Keep all "why" phrases short and concrete.
+
+For "recommended_action", keep "action" as one of the allowed labels, but in "why" explicitly name which staff should respond (e.g. floor staff, store manager, medical staff, security guard, security supervisor) and why. Be concise and prefer the fastest safe response.
+
+Output ONLY valid JSON with no markdown, no code fences, no extra text. Use this exact schema:
+
+{
+  "clip_summary": {
+    "people_detected": <int>,
+    "overall_assessment": "<one sentence, neutral tone>"
+  },
+  "per_person": [
+    {
+      "person_id": "Person_A",
+      "overall_emotion": "<calm|happy|neutral|anxious|upset|angry|agitated|fearful|insufficient_evidence>",
+      "overall_movement": "<casual|tense|posturing|boxing_stance|advancing|retreating|pacing|pointing|hands_up_guard|shoving_motion|insufficient_evidence>",
+      "notable_cues": ["<cue>", "..."]
+    }
+  ],
+  "timeline": [
+    {
+      "start_s": <number>,
+      "end_s": <number>,
+      "fight_risk_0_1": <number>,  // OVERALL EMERGENCY RISK for this segment
+      "confidence_0_1": <number>,
+      "observations": ["short phrase", "short phrase"],
+      "per_person_state": [
+        {
+          "person_id": "Person_A",
+          "emotion": "<emotion label>",
+          "movement": "<movement label>"
+        }
+      ]
+    }
+  ],
+  "overall_fight_risk_0_1": <number>,  // OVERALL EMERGENCY RISK for the whole clip
+  "prediction_next_5_10s": {
+    "likely_outcome": "<calms_down|argument_continues|confrontation_likely|fall_with_minor_injury|fall_with_serious_injury|medical_event_likely|insufficient_evidence>",
+    "confidence_0_1": <number>,
+    "why": ["short phrase", "short phrase"]
+  },
+  "recommended_action": {
+    "action": "<ignore|monitor|notify_staff|escalate_security>",
+    "why": ["short phrase", "short phrase"]
+  }
+}
+
+Be conservative: if uncertain, use "insufficient_evidence" for labels.`;
+
+const RETRY_PROMPT_EXTRA = `CRITICAL: Reply with ONLY the raw JSON object. No \`\`\`json, no explanation, no other text.`;
+
+// Models can be configured via env to let you try models with quota
+// without changing code: GEMINI_PRIMARY_MODEL / GEMINI_FALLBACK_MODEL.
+const PRIMARY_MODEL = process.env.GEMINI_PRIMARY_MODEL || "gemini-3-flash-preview";
+const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || "";
+
+function getMime(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const map = { ".mp4": "video/mp4", ".mov": "video/quicktime", ".webm": "video/webm" };
+  return map[ext] || "video/mp4";
+}
+
+async function waitForFileActive(ai, name, maxWaitMs = 120000) {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    const f = await ai.files.get({ name });
+    if (f.state === "ACTIVE") return f;
+    if (f.error) throw new Error(f.error.message || "File processing failed");
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  throw new Error("File processing timed out");
+}
+
+function isTransientModelError(err) {
+  const msg = (err && err.message) || String(err || "");
+  return msg.includes("503") || msg.includes("UNAVAILABLE") || msg.includes("high demand");
+}
+
+async function analyzeWithGemini(ai, filePath, isRetry = false) {
+  const mimeType = getMime(filePath);
+  const uploaded = await ai.files.upload({
+    file: filePath,
+    config: { mimeType },
+  });
+  const fileRef = await waitForFileActive(ai, uploaded.name);
+  const uri = fileRef.uri || `https://generativelanguage.googleapis.com/v1beta/${fileRef.name}`;
+
+  const prompt = isRetry ? `${ANALYSIS_PROMPT}\n\n${RETRY_PROMPT_EXTRA}` : ANALYSIS_PROMPT;
+
+  const modelsToTry = [PRIMARY_MODEL, FALLBACK_MODEL].filter(Boolean);
+  let lastError;
+  let response;
+
+  for (const model of modelsToTry) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        response = await ai.models.generateContent({
+          model,
+          contents: createUserContent([
+            createPartFromUri(uri, fileRef.mimeType || mimeType),
+            prompt,
+          ]),
+          config: {
+            responseMimeType: "application/json",
+          },
+        });
+        lastError = undefined;
+        break;
+      } catch (err) {
+        lastError = err;
+        if (isTransientModelError(err) && attempt === 0) {
+          await new Promise((r) => setTimeout(r, 2000));
+          continue;
+        }
+        break;
+      }
+    }
+    if (response) break;
+  }
+
+  if (!response && lastError) {
+    throw lastError;
+  }
+
+  try {
+    await ai.files.delete({ name: uploaded.name });
+  } catch (e) {
+    // Files expire automatically after 48 hours if delete is unavailable or fails.
+    console.warn("Could not delete uploaded file from Gemini:", e?.message || e);
+  }
+
+  const text = response?.text;
+  if (!text || typeof text !== "string") {
+    throw new Error("Empty or invalid response from Gemini");
+  }
+  let raw = text.trim();
+  const jsonMatch = raw.match(/^```(?:json)?\s*([\s\S]*?)```\s*$/m);
+  if (jsonMatch) raw = jsonMatch[1].trim();
+  return JSON.parse(raw);
+}
+
+const app = express();
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
+
+app.post("/analyze", upload.single("video"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "Missing file. Use form field 'video'." });
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: "GEMINI_API_KEY not set." });
+  }
+
+  const filePath = req.file.path;
+  let parsed;
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+
+    try {
+      parsed = await analyzeWithGemini(ai, filePath, false);
+    } catch (parseErr) {
+      if (parseErr instanceof SyntaxError || parseErr.message?.includes("JSON")) {
+        const ai2 = new GoogleGenAI({ apiKey });
+        parsed = await analyzeWithGemini(ai2, filePath, true);
+      } else {
+        throw parseErr;
+      }
+    }
+
+    return res.type("application/json").json(parsed);
+  } catch (err) {
+    const message = err?.message || String(err);
+    const status = message.includes("API") || message.includes("401") || message.includes("403") ? 502 : 500;
+    return res.status(status).json({ error: message });
+  } finally {
+    try {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (_) {}
+  }
+});
+
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ error: err.code === "LIMIT_FILE_SIZE" ? "File too large" : err.message });
+  }
+  if (err.message) {
+    return res.status(400).json({ error: err.message });
+  }
+  res.status(500).json({ error: "Upload failed" });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server at http://localhost:${PORT}`);
+});
