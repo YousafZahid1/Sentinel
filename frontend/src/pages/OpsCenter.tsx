@@ -8,11 +8,13 @@ import FloorMap from "@/components/command/FloorMap";
 import BottomStrip from "@/components/command/BottomStrip";
 import IncidentDetailDrawer from "@/components/sentinel/IncidentDetailDrawer";
 import CommandPalette from "@/components/sentinel/CommandPalette";
-import { alerts } from "@/components/command/AlertStack";
 import type { Alert } from "@/components/command/AlertStack";
+import { useCameras } from "@/hooks/useCameras";
 import { cn } from "@/lib/utils";
 
 const OpsCenter = () => {
+  const { cameras, alerts: liveAlerts } = useCameras();
+
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [liveState, setLiveState] = useState(true);
@@ -25,10 +27,16 @@ const OpsCenter = () => {
   });
   const [commandOpen, setCommandOpen] = useState(false);
 
-  const selectedAlert = alerts.find((a) => a.id === selectedAlertId) || null;
+  const activeAlerts: Alert[] = liveAlerts;
 
-  const filteredAlerts = alerts.filter((a) => {
-    if (searchQuery && !a.title.toLowerCase().includes(searchQuery.toLowerCase()) && !a.location.toLowerCase().includes(searchQuery.toLowerCase()))
+  const selectedAlert = activeAlerts.find((a) => a.id === selectedAlertId) || null;
+
+  const filteredAlerts = activeAlerts.filter((a) => {
+    if (
+      searchQuery &&
+      !a.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !a.location.toLowerCase().includes(searchQuery.toLowerCase())
+    )
       return false;
     if (filterChips.critical && a.severity !== "critical") return false;
     if (filterChips.warning && a.severity !== "warning") return false;
@@ -59,8 +67,8 @@ const OpsCenter = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const criticalCount = alerts.filter((a) => a.severity === "critical").length;
-  const warningCount = alerts.filter((a) => a.severity === "warning").length;
+  const criticalCount = activeAlerts.filter((a) => a.severity === "critical").length;
+  const warningCount = activeAlerts.filter((a) => a.severity === "warning").length;
 
   return (
     <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
@@ -108,10 +116,10 @@ const OpsCenter = () => {
         </div>
       </div>
 
-      {/* Main: 3-column layout */}
+      {/* Main 3-column layout */}
       <div className="flex-1 flex min-h-0">
         <div className="w-[220px] flex-shrink-0 border-r border-mc-panel-border">
-          <CameraPanel />
+          <CameraPanel cameras={cameras} />
         </div>
 
         <div className="flex-[1.2] min-w-0 flex flex-col">
@@ -122,12 +130,19 @@ const OpsCenter = () => {
           <div className="mc-panel-header flex items-center justify-between">
             <span className="mc-panel-label">Incident Feed</span>
             <span className="font-mono text-[9px] text-muted-foreground">
-              {filteredAlerts.length} / {alerts.length}
+              {filteredAlerts.length} / {activeAlerts.length}
             </span>
           </div>
           <div className="flex-1 overflow-y-auto">
             {filteredAlerts.length === 0 ? (
-              <EmptyStatePanel title="No incidents" message="No incidents match your filters. Adjust filters or search." />
+              <EmptyStatePanel
+                title={activeAlerts.length === 0 ? "Analyzing cameras…" : "No incidents"}
+                message={
+                  activeAlerts.length === 0
+                    ? "Results will appear as each camera finishes analysis."
+                    : "No incidents match your filters."
+                }
+              />
             ) : (
               filteredAlerts.map((alert, i) => (
                 <IncidentRow
@@ -196,7 +211,6 @@ const IncidentRow = ({
             alert.severity === "critical" && "border-mc-red/60 " + sev.pulse,
             alert.severity === "warning" && "border-mc-amber/50 " + sev.pulse
           )}
-          aria-label={`Severity: ${alert.severity}`}
         >
           {alert.severity}
         </span>
@@ -209,6 +223,19 @@ const IncidentRow = ({
         {alert.responder && (
           <span className="font-mono text-[8px] text-mc-cyan font-semibold">{alert.responder}</span>
         )}
+      </div>
+      {/* Risk score + prediction */}
+      <div className="flex items-center gap-2 mt-1">
+        <span className={cn(
+          "font-mono text-[8px] font-bold",
+          alert.metadata.overall_risk_score >= 0.7 ? "text-mc-red" :
+          alert.metadata.overall_risk_score >= 0.35 ? "text-mc-amber" : "text-mc-green"
+        )}>
+          RISK {Math.round(alert.metadata.overall_risk_score * 100)}%
+        </span>
+        <span className="font-mono text-[7px] text-muted-foreground">
+          {alert.metadata.prediction.likely_outcome.replace(/_/g, " ")}
+        </span>
       </div>
       <div className="flex gap-1 mt-2">
         <button className="font-mono text-[8px] px-2 py-0.5 bg-mc-surface border border-mc-panel-border hover:border-mc-cyan/30">

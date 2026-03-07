@@ -148,22 +148,24 @@ const sevStyles = {
 };
 
 interface AlertStackProps {
+  alerts?: Alert[];
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
 
-const AlertStack = ({ selectedId, onSelect }: AlertStackProps) => {
+const AlertStack = ({ selectedId, onSelect, alerts: propAlerts }: AlertStackProps) => {
+  const activeAlerts = propAlerts ?? alerts;
   return (
     <div className="mc-panel h-full flex flex-col">
       <div className="mc-panel-header">
         <span className="mc-panel-label">Alert Stack</span>
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[9px] text-mc-red font-bold animate-pulse">● {alerts.filter(a => a.severity === "critical").length} CRIT</span>
-          <span className="font-mono text-[9px] text-mc-amber font-semibold">{alerts.filter(a => a.severity === "warning").length} WARN</span>
+          <span className="font-mono text-[9px] text-mc-red font-bold animate-pulse">● {activeAlerts.filter(a => a.severity === "critical").length} CRIT</span>
+          <span className="font-mono text-[9px] text-mc-amber font-semibold">{activeAlerts.filter(a => a.severity === "warning").length} WARN</span>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {alerts.map((alert) => {
+        {activeAlerts.map((alert) => {
           const sev = sevStyles[alert.severity];
           const Icon = sev.icon;
           const isSelected = selectedId === alert.id;

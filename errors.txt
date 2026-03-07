@@ -1,0 +1,107 @@
+
+npm warn deprecated whatwg-encoding@2.0.0: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+npm warn deprecated domexception@4.0.0: Use your platform's native DOMException instead
+npm warn deprecated abab@2.0.6: Use your platform's native atob() and btoa() methods instead
+
+added 508 packages, and audited 509 packages in 21s
+
+98 packages are looking for funding
+  run `npm fund` for details
+
+14 vulnerabilities (3 low, 5 moderate, 6 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+yousaf.z@Yousafs-Laptop-2 frontend % npm audit fix --force
+npm warn using --force Recommended protections disabled.
+npm warn audit Updating jsdom to 28.1.0, which is a SemVer major change.
+npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+added 22 packages, removed 38 packages, changed 29 packages, and audited 493 packages in 14s
+
+99 packages are looking for funding
+  run `npm fund` for details
+
+# npm audit report
+
+esbuild  <=0.24.2
+Severity: moderate
+esbuild enables any website to send any requests to the development server and read the response - https://github.com/advisories/GHSA-67mh-4wv8-2f99
+fix available via `npm audit fix --force`
+Will install vite@7.3.1, which is a breaking change
+node_modules/esbuild
+  vite  0.11.0 - 6.1.6
+  Depends on vulnerable versions of esbuild
+  node_modules/vite
+
+2 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+yousaf.z@Yousafs-Laptop-2 frontend % npm audit fix --force
+npm warn using --force Recommended protections disabled.
+npm warn audit Updating vite to 7.3.1, which is a SemVer major change.
+
+added 2 packages, changed 3 packages, and audited 495 packages in 3s
+
+99 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+yousaf.z@Yousafs-Laptop-2 frontend % npm run dev
+
+> vite_react_shadcn_ts@0.0.0 dev
+> vite
+
+
+  VITE v7.3.1  ready in 486 ms
+
+  ➜  Local:   http://localhost:8080/
+  ➜  Network: http://10.180.0.117:8080/
+  ➜  press h + enter to show help
+Browserslist: browsers data (caniuse-lite) is 9 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+5:05:08 PM [vite] ws error:
+RangeError: Invalid WebSocket frame: RSV1 must be clear
+    at Receiver$2.getInfo (file:///Users/yousaf.z/Desktop/Sentinal/frontend/node_modules/vite/dist/node/chunks/config.js:17600:13)
+    at Receiver$2.startLoop (file:///Users/yousaf.z/Desktop/Sentinal/frontend/node_modules/vite/dist/node/chunks/config.js:17560:12)
+    at Receiver$2._write (file:///Users/yousaf.z/Desktop/Sentinal/frontend/node_modules/vite/dist/node/chunks/config.js:17519:9)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+    at Socket.socketOnData (file:///Users/yousaf.z/Desktop/Sentinal/frontend/node_modules/vite/dist/node/chunks/config.js:19689:37)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+RangeError: Invalid WebSocket frame: RSV1 must be clear
+    at Receiver$2.getInfo (file:///Users/yousaf.z/Desktop/Sentinal/frontend/node_modules/vite/dist/node/chunks/config.js:17600:13)
+    at Receiver$2.startLoop (file:///Users/yousaf.z/Desktop/Sentinal/frontend/node_modules/vite/dist/node/chunks/config.js:17560:12)
+    at Receiver$2._write (file:///Users/yousaf.z/Desktop/Sentinal/frontend/node_modules/vite/dist/node/chunks/config.js:17519:9)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+    at Socket.socketOnData (file:///Users/yousaf.z/Desktop/Sentinal/frontend/node_modules/vite/dist/node/chunks/config.js:19689:37)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+Emitted 'error' event on WebSocket$2 instance at:
+    at Receiver$2.receiverOnError (file:///Users/yousaf.z/Desktop/Sentinal/frontend/node_modules/vite/dist/node/chunks/config.js:19582:14)
+    at Receiver$2.emit (node:events:518:28)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'WS_ERR_UNEXPECTED_RSV_1',
+  [Symbol(status-code)]: 1002
+}
+
+Node.js v22.15.0

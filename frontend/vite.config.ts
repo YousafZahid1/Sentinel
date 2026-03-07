@@ -10,6 +10,20 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     hmr: {
       overlay: false,
+      port: 24678,
+    },
+    proxy: {
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        ws: false,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+      "/videos": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        ws: false,
+      },
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),

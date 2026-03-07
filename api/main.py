@@ -18,8 +18,9 @@ load_dotenv(Path(__file__).parent / ".env")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-from api.routers import analyze
+from api.routers import analyze, cameras
 
 app = FastAPI(
     title="Sentinel API",
@@ -40,6 +41,11 @@ app.add_middleware(
 )
 
 app.include_router(analyze.router)
+app.include_router(cameras.router)
+
+# Serve raw videos so the frontend <video> element can play them
+_videos_dir = Path(__file__).parent.parent / "videos"
+app.mount("/videos", StaticFiles(directory=str(_videos_dir)), name="videos")
 
 
 @app.get("/health", tags=["System"], summary="Health check")
