@@ -1,0 +1,31 @@
+First run npm start in a terminal after cd terminal 
+
+1: it starts running then in another terminal 
+
+Run: 
+uvicorn api.main:app --reload --port 8000
+
+
+API would run through the uvicorn fast api where it would itself call the video upload in backend
+
+
+
+
+and the stuff to use for the frontend is:
+
+
+recommended_actions":
+
+"conclusion"
+
+
+"metadata": {
+    "people_detected": 4,
+    "overall_risk_score": 0.1,
+    "prediction": {
+      "likely_outcome": "confrontation_likely",
+      "confidence": 0.9
+    }
+
+
+in the /analyze folder
