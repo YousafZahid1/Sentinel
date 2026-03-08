@@ -1,6 +1,34 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Maximize2, MapPin, Activity, Loader2, WifiOff } from "lucide-react";
+import { AlertTriangle, Maximize2, MapPin, Activity, Loader2, WifiOff, ShieldCheck, ShieldAlert, ShieldX } from "lucide-react";
 import type { CameraState } from "@/hooks/useCameras";
+
+// Deterministic trust state per camera id
+const TRUST: Record<string, "verified" | "unverified" | "tamper"> = {
+  "CAM-01": "verified",
+  "CAM-02": "verified",
+  "CAM-03": "unverified",
+};
+const TrustBadge = ({ id, status }: { id: string; status: CameraState["status"] }) => {
+  const trust = status === "error" ? "tamper" : (TRUST[id] ?? "unverified");
+  if (trust === "verified") return (
+    <div className="flex items-center gap-0.5 bg-mc-green/10 border border-mc-green/30 px-1 py-px">
+      <ShieldCheck className="w-2 h-2 text-mc-green" />
+      <span className="font-mono text-[6px] text-mc-green font-bold">VERIFIED</span>
+    </div>
+  );
+  if (trust === "tamper") return (
+    <div className="flex items-center gap-0.5 bg-mc-red/10 border border-mc-red/30 px-1 py-px">
+      <ShieldX className="w-2 h-2 text-mc-red" />
+      <span className="font-mono text-[6px] text-mc-red font-bold">TAMPER?</span>
+    </div>
+  );
+  return (
+    <div className="flex items-center gap-0.5 bg-mc-amber/10 border border-mc-amber/30 px-1 py-px">
+      <ShieldAlert className="w-2 h-2 text-mc-amber" />
+      <span className="font-mono text-[6px] text-mc-amber font-bold">UNVERIFIED</span>
+    </div>
+  );
+};
 
 interface CameraPanelProps {
   cameras: CameraState[];
@@ -126,7 +154,10 @@ const CameraPanel = ({ cameras }: CameraPanelProps) => {
 
               {/* Info strip */}
               <div className="px-1.5 py-1 flex items-center justify-between bg-mc-surface border-t border-mc-panel-border">
-                <span className="font-mono text-[8px] text-muted-foreground truncate">{cam.id}</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-mono text-[8px] text-muted-foreground truncate">{cam.id}</span>
+                  <TrustBadge id={cam.id} status={cam.status} />
+                </div>
                 <div className="flex items-center gap-1">
                   {cam.status === "done" && (
                     <>

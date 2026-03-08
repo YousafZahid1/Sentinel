@@ -67,7 +67,7 @@ const HEIGHTS = ["h-8", "h-44", "h-80"] as const;
 type HeightState = 0 | 1 | 2;
 
 const BottomStrip = () => {
-  const [heightIdx, setHeightIdx] = useState<HeightState>(1);
+  const [heightIdx, setHeightIdx] = useState<HeightState>(0);
 
   const collapsed = heightIdx === 0;
   const expanded = heightIdx === 2;

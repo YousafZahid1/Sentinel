@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Shield, Search, Play, Pause, Clock } from "lucide-react";
+import { Shield, Search, Play, Pause, Clock, Lock, Maximize2, Minimize2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,8 @@ interface TopBarProps {
   onSearch?: (query: string) => void;
   showSearch?: boolean;
   showLiveToggle?: boolean;
+  focusMode?: boolean;
+  onFocusToggle?: () => void;
 }
 
 const navItems = [
@@ -26,13 +28,15 @@ const navItems = [
 const TopBar = ({
   app_name = "SENTINEL",
   facility_name = "FACILITY A",
-  role_name = "Ops",
+  role_name = "Operator",
   live_state = true,
   last_updated_at = new Date(),
   onLiveToggle,
   onSearch,
   showSearch = true,
   showLiveToggle = true,
+  focusMode = false,
+  onFocusToggle,
 }: TopBarProps) => {
   const [time, setTime] = useState(new Date());
   const [query, setQuery] = useState("");
@@ -48,13 +52,10 @@ const TopBar = ({
       className="h-10 bg-mc-surface border-b border-mc-panel-border flex items-center justify-between px-4 flex-shrink-0"
       role="banner"
     >
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <Shield className="w-4 h-4 text-mc-cyan" aria-hidden />
           <span className="font-mono text-xs font-bold text-mc-cyan tracking-wider">{app_name}</span>
-          <span className="font-mono text-[9px] text-muted-foreground px-1.5 py-0.5 bg-mc-panel border border-mc-panel-border">
-            v2.1.0
-          </span>
         </div>
 
         <nav className="flex items-center gap-1" aria-label="Main navigation">
@@ -76,17 +77,27 @@ const TopBar = ({
 
         <div className="w-px h-5 bg-mc-panel-border" />
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <span className="font-mono text-[9px] text-muted-foreground">{facility_name}</span>
-          <span className="font-mono text-[8px] text-muted-foreground/80 px-1 py-0.5 bg-mc-panel border border-mc-panel-border">
+          <span className="font-mono text-[8px] font-bold px-1.5 py-0.5 bg-mc-cyan/10 border border-mc-cyan/30 text-mc-cyan uppercase tracking-wide">
             {role_name}
           </span>
         </div>
+
+        {/* Privacy status chip */}
+        <Link
+          to="/console/privacy"
+          className="flex items-center gap-1 font-mono text-[8px] px-1.5 py-0.5 bg-mc-green/10 border border-mc-green/30 text-mc-green hover:bg-mc-green/20 transition-colors"
+          title="Privacy controls"
+        >
+          <Lock className="w-2.5 h-2.5" />
+          Privacy: OFF
+        </Link>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {showSearch && (
-          <div className="relative w-48">
+          <div className="relative w-44">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" aria-hidden />
             <Input
               type="search"
@@ -117,9 +128,24 @@ const TopBar = ({
           </Button>
         )}
 
+        {onFocusToggle && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onFocusToggle}
+            className={cn(
+              "h-7 px-2 font-mono text-[9px] gap-1",
+              focusMode ? "text-mc-amber border border-mc-amber/30 bg-mc-amber/10" : "text-muted-foreground"
+            )}
+            title={focusMode ? "Exit Focus Mode" : "Focus Mode"}
+          >
+            {focusMode ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+            {focusMode ? "Exit Focus" : "Focus"}
+          </Button>
+        )}
+
         <div className="flex items-center gap-1.5">
           <Clock className="w-3 h-3 text-muted-foreground" aria-hidden />
-          <span className="font-mono text-[9px] text-muted-foreground">Last updated</span>
           <span className="font-mono text-[10px] font-semibold tabular-nums">
             {last_updated_at.toLocaleTimeString("en-US", { hour12: false })}
           </span>

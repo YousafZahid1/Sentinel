@@ -71,6 +71,7 @@ const OpsCenter = () => {
     info: false,
   });
   const [commandOpen, setCommandOpen] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
 
   const activeAlerts: Alert[] = liveAlerts;
 
@@ -134,6 +135,8 @@ const OpsCenter = () => {
         last_updated_at={lastUpdated}
         onLiveToggle={() => setLiveState((l) => !l)}
         onSearch={setSearchQuery}
+        focusMode={focusMode}
+        onFocusToggle={() => setFocusMode((f) => !f)}
       />
 
       {/* KPI Row */}
@@ -163,10 +166,12 @@ const OpsCenter = () => {
 
       {/* Main layout */}
       <div className="flex-1 flex min-h-0">
-        {/* Left: Cameras */}
-        <div className="w-[220px] flex-shrink-0 border-r border-mc-panel-border">
-          <CameraPanel cameras={cameras} />
-        </div>
+        {/* Left: Cameras — hidden in focus mode */}
+        {!focusMode && (
+          <div className="w-[220px] flex-shrink-0 border-r border-mc-panel-border">
+            <CameraPanel cameras={cameras} />
+          </div>
+        )}
 
         {/* Center: Floor Map */}
         <div className="flex-[1.2] min-w-0 flex flex-col">
@@ -277,7 +282,7 @@ const OpsCenter = () => {
         </div>
       </div>
 
-      <BottomStrip />
+      {!focusMode && <BottomStrip />}
 
       <IncidentDetailDrawer
         alert={selectedAlert}
@@ -322,26 +327,31 @@ const IncidentRow = ({
         isNew && "animate-in fade-in duration-300"
       )}
     >
-      <div className="flex items-start gap-2">
-        <span
-          className={cn(
-            "font-mono text-[7px] font-bold px-1 py-px uppercase border",
-            sev.badge,
-            alert.severity === "critical" && "border-mc-red/60 " + sev.pulse,
-            alert.severity === "warning" && "border-mc-amber/50 " + sev.pulse
-          )}
-        >
-          {alert.severity}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2">
+          <span
+            className={cn(
+              "font-mono text-[7px] font-bold px-1 py-px uppercase border",
+              sev.badge,
+              alert.severity === "critical" && "border-mc-red/60 " + sev.pulse,
+              alert.severity === "warning" && "border-mc-amber/50 " + sev.pulse
+            )}
+          >
+            {alert.severity}
+          </span>
+          <span className="font-mono text-[8px] text-muted-foreground">{alert.id}</span>
+        </div>
+        <span className="font-mono text-[7px] font-bold px-1 py-px border border-mc-cyan/30 text-mc-cyan bg-mc-cyan/10 flex-shrink-0">
+          NOTIFIED
         </span>
-        <span className="font-mono text-[8px] text-muted-foreground">{alert.id}</span>
       </div>
       <h3 className="font-mono text-[10px] font-bold text-foreground mt-1">{alert.title}</h3>
       <div className="flex items-center gap-2 mt-1 flex-wrap">
         <span className="font-mono text-[8px] text-muted-foreground">{alert.location}</span>
         <span className="font-mono text-[8px] text-muted-foreground">{alert.time} AGO</span>
-        {alert.responder && (
-          <span className="font-mono text-[8px] text-mc-cyan font-semibold">{alert.responder}</span>
-        )}
+        <span className="font-mono text-[8px] text-mc-cyan/70">
+          → {alert.routeTo}
+        </span>
       </div>
       <div className="flex items-center gap-2 mt-1">
         <span className={cn(
