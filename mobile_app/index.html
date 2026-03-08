@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Sentinel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <div class="app-root">
+      <header class="app-header">
+        <div class="logo-text">
+          <span class="logo-main">Sentinel</span>
+        </div>
+      </header>
+
+      <main class="app-main">
+        <section id="auth-screen" class="card">
+          <div class="card-header">
+            <h1 class="card-title">Welcome</h1>
+            <p class="card-subtitle">
+              Sign in to continue to your HackTJ dashboard.
+            </p>
+          </div>
+
+          <nav class="tab-switch">
+            <button
+              id="tab-login"
+              class="tab-button tab-button--active"
+              type="button"
+            >
+              Log in
+            </button>
+            <button id="tab-signup" class="tab-button" type="button">
+              Sign up
+            </button>
+          </nav>
+
+          <form id="login-form" class="form active" autocomplete="on">
+            <div class="form-field">
+              <label for="login-email">Email</label>
+              <input
+                id="login-email"
+                name="email"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+                required
+                placeholder="you@example.com"
+              />
+            </div>
+            <div class="form-field">
+              <label for="login-password">Password</label>
+              <input
+                id="login-password"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                required
+                minlength="6"
+                placeholder="••••••••"
+              />
+            </div>
+            <button id="login-submit" class="primary-button" type="submit">
+              Continue
+            </button>
+          </form>
+
+          <form id="signup-form" class="form" autocomplete="on" novalidate>
+            <div class="form-field">
+              <label for="signup-email">Email</label>
+              <input
+                id="signup-email"
+                name="email"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+                required
+                placeholder="you@example.com"
+              />
+            </div>
+            <div class="form-field">
+              <label for="signup-password">Password</label>
+              <input
+                id="signup-password"
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                required
+                minlength="6"
+                placeholder="At least 6 characters"
+              />
+            </div>
+            <div class="form-field">
+              <label for="signup-password-confirm">Confirm password</label>
+              <input
+                id="signup-password-confirm"
+                name="passwordConfirm"
+                type="password"
+                autocomplete="new-password"
+                required
+                minlength="6"
+                placeholder="Repeat your password"
+              />
+            </div>
+            <div class="form-field">
+              <label for="signup-role">Role</label>
+              <select id="signup-role" name="role" required>
+                <option value="" disabled selected>Select your role</option>
+                <option value="responder">Responder</option>
+                <option value="staff">Staff</option>
+                <option value="student">Student</option>
+              </select>
+            </div>
+            <button id="signup-submit" class="primary-button" type="submit">
+              Create account
+            </button>
+          </form>
+
+          <p id="auth-message" class="auth-message" aria-live="polite"></p>
+        </section>
+
+        <section id="home-screen" class="card card--hidden" aria-hidden="true">
+          <div class="card-header">
+            <h1 class="card-title">Home</h1>
+            <p class="card-subtitle">
+              Overview of your account and device.
+            </p>
+          </div>
+          <div class="home-body">
+            <div class="user-pill">
+              <div class="avatar" id="user-avatar"></div>
+              <div class="user-meta">
+                <span class="user-label">Signed in as</span>
+                <span id="user-email" class="user-email"></span>
+              </div>
+            </div>
+
+            <div class="home-panel">
+              <p class="home-title">Your account</p>
+              <div class="account-rows">
+                <div class="account-row">
+                  <span class="account-label">Email</span>
+                  <span id="account-email" class="account-value"></span>
+                </div>
+                <div class="account-row">
+                  <span class="account-label">Role</span>
+                  <span id="account-role" class="account-value"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="home-panel">
+              <p class="home-title">Your location</p>
+              <p class="home-text">
+                This app can use your device location to route nearby emergencies.
+                Nothing is sent to the server yet.
+              </p>
+              <div class="location-status-row">
+                <span
+                  id="location-status"
+                  class="location-status"
+                >
+                  Location not requested yet.
+                </span>
+              </div>
+              <div class="location-coords-row">
+                <span class="location-label">Coordinates</span>
+                <span id="location-coords" class="location-coords">—</span>
+              </div>
+              <button
+                id="btn-get-location"
+                class="ghost-button ghost-button--inline"
+                type="button"
+              >
+                Get current location
+              </button>
+              <div class="map-shell">
+                <div
+                  id="map"
+                  class="map-view"
+                  aria-label="Map with your approximate location"
+                ></div>
+              </div>
+            </div>
+
+            <div class="home-panel home-panel--soft">
+              <p class="home-title">Emergencies</p>
+              <p class="home-text" id="emergency-empty">
+                No emergencies yet.
+              </p>
+              <ul id="emergency-list" class="emergency-list" aria-label="Active emergencies"></ul>
+            </div>
+          </div>
+
+          <button id="sign-out" class="ghost-button" type="button">
+            Sign out
+          </button>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <span>Built with Supabase</span>
+      </footer>
+    </div>
+
+    <div
+      id="emergency-popup-overlay"
+      class="emergency-popup-overlay emergency-popup--hidden"
+      aria-live="assertive"
+    >
+      <div class="emergency-popup">
+        <div class="emergency-popup-header">
+          <h2 class="emergency-popup-title" id="emergency-popup-title">
+            Emergency alert
+          </h2>
+          <button
+            type="button"
+            id="emergency-popup-close"
+            class="emergency-popup-close"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <div class="emergency-popup-body">
+          <p class="emergency-popup-desc" id="emergency-popup-desc"></p>
+          <div class="emergency-popup-location" id="emergency-popup-location"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
+

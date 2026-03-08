@@ -3,7 +3,6 @@ import TopBar from "@/components/sentinel/TopBar";
 import KpiIndicatorCard from "@/components/sentinel/KpiIndicatorCard";
 import EmptyStatePanel from "@/components/sentinel/EmptyStatePanel";
 import CameraPanel from "@/components/command/CameraPanel";
-import AlertStack from "@/components/command/AlertStack";
 import FloorMap from "@/components/command/FloorMap";
 import BottomStrip from "@/components/command/BottomStrip";
 import IncidentDetailDrawer from "@/components/sentinel/IncidentDetailDrawer";
@@ -11,6 +10,52 @@ import CommandPalette from "@/components/sentinel/CommandPalette";
 import type { Alert } from "@/components/command/AlertStack";
 import { useCameras } from "@/hooks/useCameras";
 import { cn } from "@/lib/utils";
+
+const nearMisses = [
+  {
+    id: "NM-001",
+    risk_score: 78,
+    risk_trend: [45, 52, 61, 78],
+    location_name: "STAIRWELL A",
+    detected_at: "02:15 ago",
+    recommended_actions: [
+      "Deploy temporary one-way flow signage in stairwell",
+      "Stagger bell schedule to reduce simultaneous traffic",
+      "Review camera angle to improve blind-corner visibility",
+    ],
+  },
+  {
+    id: "NM-002",
+    risk_score: 62,
+    risk_trend: [30, 42, 55, 62],
+    location_name: "ENTRANCE LOBBY",
+    detected_at: "05:42 ago",
+    recommended_actions: [
+      "Schedule de-escalation coverage at peak times",
+      "Tune audio triggers to reduce false positives",
+      "Place visible staff presence near queue bottlenecks",
+    ],
+  },
+  {
+    id: "NM-003",
+    risk_score: 45,
+    risk_trend: [20, 28, 38, 45],
+    location_name: "CAFETERIA",
+    detected_at: "12:30 ago",
+    recommended_actions: [
+      "Add additional matting around drink stations",
+      "Increase spill-check frequency during lunch window",
+      "Mark spill-prone tiles for resurfacing review",
+    ],
+  },
+];
+
+const topZones = [
+  { zone_id: "z1", zone_name: "STAIRWELL A", risk_score: 78 },
+  { zone_id: "z2", zone_name: "ENTRANCE LOBBY", risk_score: 62 },
+  { zone_id: "z3", zone_name: "MAIN HALLWAY", risk_score: 55 },
+  { zone_id: "z4", zone_name: "CAFETERIA", risk_score: 45 },
+];
 
 const OpsCenter = () => {
   const { cameras, alerts: liveAlerts } = useCameras();
@@ -96,7 +141,7 @@ const OpsCenter = () => {
         <div className="flex gap-3">
           <KpiIndicatorCard label="Active incidents" value={criticalCount + warningCount} delta_value={2} delta_direction="up" time_window="24h" />
           <KpiIndicatorCard label="Critical" value={criticalCount} />
-          <KpiIndicatorCard label="Near-misses" value={12} delta_value={-3} delta_direction="down" time_window="24h" />
+          <KpiIndicatorCard label="Near-misses" value={nearMisses.length} delta_value={-3} delta_direction="down" time_window="24h" />
         </div>
         <div className="flex gap-3 ml-auto">
           {["critical", "warning", "info"].map((chip) => (
@@ -116,24 +161,28 @@ const OpsCenter = () => {
         </div>
       </div>
 
-      {/* Main 3-column layout */}
+      {/* Main layout */}
       <div className="flex-1 flex min-h-0">
+        {/* Left: Cameras */}
         <div className="w-[220px] flex-shrink-0 border-r border-mc-panel-border">
           <CameraPanel cameras={cameras} />
         </div>
 
+        {/* Center: Floor Map */}
         <div className="flex-[1.2] min-w-0 flex flex-col">
           <FloorMap />
         </div>
 
-        <div className="w-[280px] flex-shrink-0 border-l border-mc-panel-border flex flex-col">
-          <div className="mc-panel-header flex items-center justify-between">
-            <span className="mc-panel-label">Incident Feed</span>
-            <span className="font-mono text-[9px] text-muted-foreground">
-              {filteredAlerts.length} / {activeAlerts.length}
-            </span>
-          </div>
-          <div className="flex-1 overflow-y-auto">
+        {/* Right: Incident Feed + Near-Miss Feed + Top Zones */}
+        <div className="w-[280px] flex-shrink-0 border-l border-mc-panel-border flex flex-col overflow-y-auto">
+          {/* Incident Feed */}
+          <div className="flex-shrink-0">
+            <div className="mc-panel-header flex items-center justify-between sticky top-0 z-10 bg-mc-surface">
+              <span className="mc-panel-label">Incident Feed</span>
+              <span className="font-mono text-[9px] text-muted-foreground">
+                {filteredAlerts.length} / {activeAlerts.length}
+              </span>
+            </div>
             {filteredAlerts.length === 0 ? (
               <EmptyStatePanel
                 title={activeAlerts.length === 0 ? "Analyzing cameras…" : "No incidents"}
@@ -154,6 +203,76 @@ const OpsCenter = () => {
                 />
               ))
             )}
+          </div>
+
+          {/* Near-Miss Feed */}
+          <div className="flex-shrink-0 border-t border-mc-panel-border">
+            <div className="mc-panel-header flex items-center justify-between">
+              <span className="mc-panel-label">Near-Miss Feed</span>
+              <span className="font-mono text-[9px] text-muted-foreground">{nearMisses.length} total</span>
+            </div>
+            <div className="p-2 space-y-2">
+              {nearMisses.map((nm) => (
+                <div
+                  key={nm.id}
+                  className="p-2 bg-mc-surface border border-mc-panel-border"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono text-[9px] font-bold">{nm.id}</span>
+                    <span className={cn(
+                      "font-mono text-[10px] font-bold",
+                      nm.risk_score > 70 ? "text-mc-red" : nm.risk_score > 40 ? "text-mc-amber" : "text-mc-green"
+                    )}>
+                      {nm.risk_score}%
+                    </span>
+                  </div>
+                  <div className="flex gap-0.5 mb-1.5 items-end h-3">
+                    {nm.risk_trend.map((v, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 min-w-[4px] bg-mc-amber/60 rounded-sm"
+                        style={{ height: `${v}%` }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-mono text-[8px] text-muted-foreground">{nm.location_name}</span>
+                    <span className="font-mono text-[8px] text-muted-foreground">{nm.detected_at}</span>
+                  </div>
+                  <ul className="space-y-0.5">
+                    {nm.recommended_actions.map((action) => (
+                      <li key={action} className="font-mono text-[7px] text-foreground/75 flex gap-1">
+                        <span className="text-mc-amber">•</span>
+                        <span>{action}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Top Risky Zones */}
+          <div className="flex-shrink-0 border-t border-mc-panel-border">
+            <div className="mc-panel-header">
+              <span className="mc-panel-label">Top Risky Zones</span>
+            </div>
+            <div className="p-2 space-y-1">
+              {topZones.map((z) => (
+                <div
+                  key={z.zone_id}
+                  className="flex items-center justify-between p-2 bg-mc-surface border border-mc-panel-border"
+                >
+                  <span className="font-mono text-[9px] font-semibold">{z.zone_name}</span>
+                  <span className={cn(
+                    "font-mono text-[9px] font-bold",
+                    z.risk_score > 70 ? "text-mc-red" : "text-mc-amber"
+                  )}>
+                    {z.risk_score}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -224,7 +343,6 @@ const IncidentRow = ({
           <span className="font-mono text-[8px] text-mc-cyan font-semibold">{alert.responder}</span>
         )}
       </div>
-      {/* Risk score + prediction */}
       <div className="flex items-center gap-2 mt-1">
         <span className={cn(
           "font-mono text-[8px] font-bold",

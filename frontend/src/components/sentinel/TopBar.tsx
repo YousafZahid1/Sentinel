@@ -19,7 +19,6 @@ interface TopBarProps {
 
 const navItems = [
   { path: "/console/ops", label: "Ops Center" },
-  { path: "/console/prevention", label: "Prevention" },
   { path: "/console/privacy", label: "Privacy & Data Controls" },
   { path: "/console/responder", label: "Responder Console" },
 ];

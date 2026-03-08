@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { getCameras, analyzeCamera, type CameraInfo, type AnalysisResult } from "@/lib/api";
 import type { Alert } from "@/components/command/AlertStack";
+import { supabase } from "@/lib/supabase";
 
 export interface CameraState extends CameraInfo {
   status: "analyzing" | "done" | "error";
@@ -47,6 +48,46 @@ function toAlert(camId: string, result: AnalysisResult): Alert {
   };
 }
 
+function jitter(base: number): number {
+  // ~20 meters ≈ 0.00018 degrees; random offset in [-0.00018, +0.00018]
+  return base + (Math.random() * 0.00036 - 0.00018);
+}
+
+function randomDescription(alert: Alert, result: AnalysisResult): string {
+  const outcome = result.metadata.prediction.likely_outcome.replace(/_/g, " ");
+  const confidence = Math.round(result.metadata.prediction.confidence * 100);
+  const people = result.metadata.people_detected;
+  const topFactor = result.risk_factors[0];
+
+  const options = [
+    result.conclusion,
+    `${outcome} detected with ${confidence}% confidence. ${result.conclusion}`,
+    `${people} ${people === 1 ? "person" : "people"} involved. ${result.conclusion}`,
+    topFactor
+      ? `Key signal: ${topFactor.label}. ${result.conclusion}`
+      : result.conclusion,
+    `${alert.routeTo} response recommended. ${result.conclusion}`,
+  ];
+
+  return options[Math.floor(Math.random() * options.length)];
+}
+
+async function sendToSupabase(camId: string, alert: Alert, result: AnalysisResult) {
+  const risk = result.metadata.overall_risk_score;
+  const importance = risk >= 0.8 ? 5 : risk >= 0.65 ? 4 : risk >= 0.5 ? 3 : risk >= 0.35 ? 2 : 1;
+
+  await supabase.from("emergencies").upsert({
+    id: "63edd240-3310-4008-b6fc-a2b282870cd2",
+    title: alert.title,
+    description: randomDescription(alert, result),
+    latitude: jitter(-77.2334),
+    longitude: jitter(38.92161),
+    created_at: new Date().toISOString(),
+    role: "responder",
+    importance,
+  });
+}
+
 export function useCameras() {
   const [cameras, setCameras] = useState<CameraState[]>([]);
 
@@ -71,13 +112,18 @@ export function useCameras() {
           try {
             const result = await analyzeCamera(cam.id);
             if (cancelled) return;
+            const alert = toAlert(cam.id, result);
             setCameras((prev) =>
               prev.map((c) =>
                 c.id === cam.id
-                  ? { ...c, status: "done" as const, result, alert: toAlert(cam.id, result) }
+                  ? { ...c, status: "done" as const, result, alert }
                   : c
               )
             );
+            // Send to Supabase if risk is significant (warning or above)
+            if (result.metadata.overall_risk_score >= 0.35) {
+              sendToSupabase(cam.id, alert, result).catch(console.error);
+            }
           } catch (err) {
             if (cancelled) return;
             setCameras((prev) =>

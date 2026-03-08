@@ -1,0 +1,16 @@
+{
+  "name": "hacktj-mobile-auth",
+  "version": "1.0.0",
+  "description": "Mobile-first Supabase auth demo (login, signup, and home screen).",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": [
+    "supabase",
+    "auth",
+    "mobile",
+    "hacktj"
+  ],
+  "license": "MIT"
+}
+
