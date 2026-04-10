@@ -16,41 +16,17 @@ CAMERAS = [
 ]
 
 
-@router.get("", summary="List available cameras with analysis status and follow-up URLs")
+@router.get("", summary="List available cameras and their video URLs")
 async def list_cameras() -> list[dict]:
     return [
-        {
-            "id": c["id"],
-            "video_url": f"/videos/{c['filename']}",
-            "follow_up_url": f"/cameras/{c['id']}/follow-up"
-        }
+        {"id": c["id"], "video_url": f"/videos/{c['filename']}"}
         for c in CAMERAS
-
     ]
-
-
-@router.get(
-    "/{cam_id}/follow-up",
-    summary="Get follow-up questions for a camera's analysis",
-    response_model=dict
-)
-async def get_follow_up(cam_id: str) -> dict:
-    # Example follow-up questions
-    follow_up_questions = {
-        "questions": [
-            "How would you rate the criticality of the situation?",
-            "Were there any false positives in the analysis?",
-            "Did the system miss any critical events?"
-        ],
-        "rating_options": ["Low", "Medium", "High"]
-    }
-    return follow_up_questions
 
 
 @router.post(
     "/{cam_id}/analyze",
     response_model=AnalysisResponse,
-
     responses={
         404: {"model": ErrorResponse},
         502: {"model": ErrorResponse},
