@@ -12,7 +12,7 @@ from typing import Any
 from api.models.response import AnalysisMetadata, AnalysisResponse, Prediction, RiskFactor
 
 # Risk level above which a timeline segment is considered elevated
-_RISK_THRESHOLD = 0.4
+_RISK_THRESHOLD = 0.35
 
 
 def _extract_risk_factors(raw: dict) -> list[RiskFactor]:

@@ -1,0 +1,11 @@
+fastapi
+httpx
+scikit-learn
+# (pre-installed in base image) pandas
+opencv-python-headless
+aiofiles
+python-dotenv
+ultralytics
+pydantic
+# (pre-installed in base image) numpy
+uvicorn

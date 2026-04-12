@@ -28,7 +28,7 @@ MAX_FILE_SIZE_MB = 100
     ),
 )
 async def analyze_video(
-    video: UploadFile = File(..., description="Video file — mp4, mov, or webm, max 100 MB"),
+    video: UploadFile = File(..., description="Video file — mp4, mov, or webm, max 100MB"),
 ) -> AnalysisResponse:
     ext = Path(video.filename or "").suffix.lower()
     if video.content_type not in ALLOWED_MIMES and ext not in ALLOWED_EXTENSIONS:
@@ -41,14 +41,18 @@ async def analyze_video(
     if len(content) / (1024 * 1024) > MAX_FILE_SIZE_MB:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File too large. Maximum allowed: {MAX_FILE_SIZE_MB} MB.",
+            detail=f"File too large. Maximum allowed: {MAX_FILE_SIZE_MB}MB.",
         )
 
     try:
         raw = await gemini_client.analyze_video(content, video.filename or "video.mp4", video.content_type or "video/mp4")
     except Exception as err:
         msg = str(err)
-        code = status.HTTP_502_BAD_GATEWAY if any(t in msg for t in ("HTTP", "Connect", "pipeline")) else status.HTTP_500_INTERNAL_SERVER_ERROR
+        code = (
+            status.HTTP_502_BAD_GATEWAY
+            if any(t in msg.lower() for t in ("http", "connect", "pipeline"))
+            else status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
         raise HTTPException(status_code=code, detail=msg) from err
 
     return transformer.transform(raw)
