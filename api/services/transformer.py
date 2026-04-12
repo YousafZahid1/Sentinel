@@ -15,6 +15,12 @@ from api.models.response import AnalysisMetadata, AnalysisResponse, Prediction, 
 _RISK_THRESHOLD = 0.4
 
 
+def _is_fallback_analysis(raw: dict) -> bool:
+    """Check if the analysis result is from a fallback model."""
+    summary = raw.get("clip_summary", {}).get("overall_assessment", "")
+    return "fallback" in summary.lower()
+
+
 def _extract_risk_factors(raw: dict) -> list[RiskFactor]:
     factors: list[RiskFactor] = []
     seen: set[str] = set()
@@ -27,6 +33,8 @@ def _extract_risk_factors(raw: dict) -> list[RiskFactor]:
 
     # Per-person notable cues
     overall_risk: float = raw.get("overall_fight_risk_0_1", 0.0)
+    is_fallback = _is_fallback_analysis(raw)
+
     for person in raw.get("per_person", []):
         pid = person.get("person_id", "unknown")
         emotion = person.get("overall_emotion", "")
@@ -40,8 +48,12 @@ def _extract_risk_factors(raw: dict) -> list[RiskFactor]:
             )
 
         if movement not in ("casual", "insufficient_evidence", ""):
+            base_label = f"{movement.replace('_', ' ')} movement detected"
+            if is_fallback:
+                base_label = f"Potential {base_label.lower()}"
+
             add(
-                label=f"{movement.replace('_', ' ')} movement detected",
+                label=base_label,
                 confidence=overall_risk,
                 interpretation=f"{pid} exhibiting {movement.replace('_', ' ')} — may indicate confrontational intent or distress.",
             )
@@ -132,7 +144,7 @@ def _build_recommended_actions(raw: dict) -> list[str]:
 
 
 def transform(raw: dict) -> AnalysisResponse:
-    """Convert raw Gemini JSON into a structured AnalysisResponse."""
+    """Convert raw analysis (Gemini or fallback YOLO) into structured AnalysisResponse."""
     prediction_raw = raw.get("prediction_next_5_10s", {})
 
     return AnalysisResponse(
@@ -146,5 +158,6 @@ def transform(raw: dict) -> AnalysisResponse:
                 likely_outcome=prediction_raw.get("likely_outcome", "insufficient_evidence"),
                 confidence=round(prediction_raw.get("confidence_0_1", 0.0), 3),
             ),
+            analysis_source="fallback_yolo" if _is_fallback_analysis(raw) else "gemini",
         ),
     )

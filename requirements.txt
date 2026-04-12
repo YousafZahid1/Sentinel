@@ -1,0 +1,9 @@
+fastapi
+opencv-python-headless
+aiofiles
+python-dotenv
+httpx
+ultralytics
+pydantic
+# (pre-installed in base image) numpy
+uvicorn
