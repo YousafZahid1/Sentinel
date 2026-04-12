@@ -1,0 +1,11 @@
+docker
+# (pre-installed in base image) requests
+# (pre-installed in base image) numpy
+opencv-python-headless
+python-dotenv
+httpx
+aiofiles
+ultralytics
+uvicorn
+fastapi
+pydantic
