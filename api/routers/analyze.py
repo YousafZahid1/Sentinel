@@ -1,7 +1,5 @@
 from pathlib import Path
-
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
-
 from api.models.response import AnalysisResponse, ErrorResponse
 from api.services import gemini_client, transformer
 
@@ -10,7 +8,6 @@ router = APIRouter(prefix="/analyze", tags=["Analysis"])
 ALLOWED_MIMES = {"video/mp4", "video/quicktime", "video/webm"}
 ALLOWED_EXTENSIONS = {".mp4", ".mov", ".webm"}
 MAX_FILE_SIZE_MB = 100
-
 
 @router.post(
     "",
@@ -52,3 +49,19 @@ async def analyze_video(
         raise HTTPException(status_code=code, detail=msg) from err
 
     return transformer.transform(raw)
+
+@router.post(
+    "/feedback",
+    response_model=dict,
+    summary="Submit feedback on situation criticality",
+    description="Staff can provide feedback on the criticality of the situation after autonomous deployment",
+)
+async def submit_feedback(feedback: dict) -> dict:
+    # Basic validation
+    if not feedback or 'criticality' not in feedback:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid feedback data. 'criticality' field is required.",
+        )
+    # Here you would typically save the feedback to a database or process it further
+    return {"message": "Feedback received successfully"}
