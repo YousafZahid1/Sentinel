@@ -1,0 +1,8 @@
+python-dotenv
+fastapi
+numpy
+aiofiles
+httpx
+uvicorn
+pydantic
+opencv-python
