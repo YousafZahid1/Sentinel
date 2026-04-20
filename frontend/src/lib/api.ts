@@ -33,6 +33,23 @@ export async function getCameras(): Promise<CameraInfo[]> {
   return res.json();
 }
 
+export async function submitFeedback(
+  analysisId: string,
+  criticality: number,
+  comments: string | null
+): Promise<void> {
+  const res = await fetch(`${BASE}/analyze/feedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ analysis_id: analysisId, criticality, comments }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail ?? "Failed to submit feedback");
+  }
+}
+
 export async function analyzeCamera(camId: string): Promise<AnalysisResult> {
   const res = await fetch(`${BASE}/cameras/${camId}/analyze`, { method: "POST" });
   if (!res.ok) {

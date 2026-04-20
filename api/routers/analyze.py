@@ -1,9 +1,15 @@
 from pathlib import Path
+from pydantic import BaseModel
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from api.models.response import AnalysisResponse, ErrorResponse
 from api.services import gemini_client, transformer
+
+class FeedbackRequest(BaseModel):
+    analysis_id: str
+    criticality: int
+    comments: str | None
 
 router = APIRouter(prefix="/analyze", tags=["Analysis"])
 
