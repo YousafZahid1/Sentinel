@@ -1,0 +1,12 @@
+fastapi
+httpx
+fastapi
+httpx
+aiofiles
+numpy
+opencv-python
+pydantic
+python-dotenv
+ultralytics
+uvicorn
+python-multipart
