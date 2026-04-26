@@ -280,6 +280,41 @@ const OpsCenter = () => {
             </div>
           </div>
         </div>
+
+        {/* Feedback Modal */}
+        {showFeedback && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <form onSubmit={handleFeedbackSubmit} className="bg-mc-surface rounded-lg shadow-xl w-full max-w-md">
+              <div className="p-4 border-b border-mc-panel-border">
+                <h2 className="font-mono text-[11px] font-bold">Provide Feedback</h2>
+              </div>
+              <div className="p-4">
+                <textarea
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  className="w-full h-24 p-2 border border-mc-panel-border rounded-lg font-mono text-[10px]"
+                  placeholder="Enter your feedback here..."
+                />
+              </div>
+              <div className="p-4 border-t border-mc-panel-border flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowFeedback(false)}
+                  className="font-mono text-[9px] px-4 py-2 border border-mc-panel-border hover:border-mc-cyan/30 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="font-mono text-[9px] px-4 py-2 bg-mc-cyan/20 border border-mc-cyan/50 text-mc-cyan rounded-lg disabled:opacity-50"
+                >
+                  {isSubmitting ? "Submitting..." : "Submit Feedback"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
 
       {!focusMode && <BottomStrip />}
@@ -376,3 +411,59 @@ const IncidentRow = ({
     </div>
   );
 };
+
+
+# --- Gray full-file fallback: blocks that could not be matched ---
+  const warningCount = activeAlerts.filter((a) => a.severity === "warning").length;
+  const criticalCount = activeAlerts.filter((a) => a.severity === "critical").length;
+
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleFeedbackSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/analyze/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedback }),
+      });
+      if (!response.ok) throw new Error("Failed to submit feedback");
+      setShowFeedback(false);
+      setFeedback("");
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+# --- Gray full-file fallback: blocks that could not be matched ---
+  const warningCount = activeAlerts.filter((a) => a.severity === "warning").length;
+  const criticalCount = activeAlerts.filter((a) => a.severity === "critical").length;
+
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleFeedbackSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/analyze/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedback }),
+      });
+      if (!response.ok) throw new Error("Failed to submit feedback");
+      setShowFeedback(false);
+      setFeedback("");
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
