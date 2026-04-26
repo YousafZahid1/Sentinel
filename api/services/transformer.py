@@ -131,9 +131,28 @@ def _build_recommended_actions(raw: dict) -> list[str]:
     return actions if actions else ["No immediate action required."]
 
 
-def transform(raw: dict) -> AnalysisResponse:
-    """Convert raw Gemini JSON into a structured AnalysisResponse."""
+def transform(raw: dict, staff_feedback: dict = None) -> AnalysisResponse:
+    """Convert raw Gemini JSON into a structured AnalysisResponse with optional staff feedback."""
     prediction_raw = raw.get("prediction_next_5_10s", {})
+    
+    metadata = AnalysisMetadata(
+        people_detected=raw.get("clip_summary", {}).get("people_detected", 0),
+        overall_risk_score=round(raw.get("overall_fight_risk_0_1", 0.0), 3),
+        prediction=Prediction(
+            likely_outcome=prediction_raw.get("likely_outcome", "insufficient_evidence"),
+            confidence=round(prediction_raw.get("confidence_0_1", 0.0), 3),
+        ),
+    )
+    
+    if staff_feedback:
+        metadata.staff_feedback = staff_feedback
+    
+    return AnalysisResponse(
+        risk_factors=_extract_risk_factors(raw),
+        conclusion=_build_conclusion(raw),
+        recommended_actions=_build_recommended_actions(raw),
+        metadata=metadata,
+    )
 
     return AnalysisResponse(
         risk_factors=_extract_risk_factors(raw),
