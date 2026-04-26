@@ -64,12 +64,6 @@ const OpsCenter = () => {
     e.preventDefault();
     // API call to submit feedback
   };
-  const [feedback, setFeedback] = useState({ criticality: '', follow_up: false });
-
-  const handleFeedbackSubmit = (e) => {
-    e.preventDefault();
-    // API call to submit feedback
-  };
   const { cameras, alerts: liveAlerts } = useCameras();
 
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
