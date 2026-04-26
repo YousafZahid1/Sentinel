@@ -290,11 +290,48 @@ const OpsCenter = () => {
         onOpenChange={setDrawerOpen}
         onAssign={() => {}}
         onNotify={() => {}}
-      />
-    </div>
-  );
+     >
+       {selectedAlert && (
+         <div className="p-4 border-t border-mc-panel-border mt-4">
+           <h4 className="font-mono text-[10px] font-bold mb-2">PROVIDE FEEDBACK</h4>
+           <div className="space-y-2">
+             <label className="block font-mono text-[8px]">
+               Criticality (0-100):
+               <input
+                 type="number"
+                 min="0"
+                 max="100"
+                 className="w-full p-1 mt-1 border border-mc-panel-border"
+                 onChange={(e) => {
+                   // Handle change
+                 }}
+               />
+             </label>
+             <label className="block font-mono text-[8px]">
+               Comments:
+               <textarea
+                 className="w-full p-1 mt-1 border border-mc-panel-border"
+                 rows={3}
+                 onChange={(e) => {
+                   // Handle change
+                 }}
+               />
+             </label>
+             <button
+               className="w-full font-mono text-[8px] py-1 bg-mc-cyan/20 border border-mc-cyan/50 hover:bg-mc-cyan/30"
+               onClick={() => {
+                 // Handle submit using submitFeedback from frontend/src/lib/api.ts
+               }}
+             >
+               Submit Feedback
+             </button>
+           </div>
+         </div>
+       )}
+     </IncidentDetailDrawer>
+   </div>
+ );
 };
-
 export default OpsCenter;
 
 const IncidentRow = ({
