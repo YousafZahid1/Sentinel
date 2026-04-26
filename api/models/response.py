@@ -33,3 +33,19 @@ class AnalysisResponse(BaseModel):
 class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
+
+
+# --- Gray full-file fallback: blocks that could not be matched ---
+class AnalysisMetadata(BaseModel):
+    people_detected: int
+    overall_risk_score: float
+    prediction: Prediction
+    staff_feedback: Optional[dict] = None
+
+
+# --- Gray full-file fallback: blocks that could not be matched ---
+class AnalysisMetadata(BaseModel):
+    people_detected: int
+    overall_risk_score: float
+    prediction: Prediction
+    staff_feedback: Optional[dict] = None

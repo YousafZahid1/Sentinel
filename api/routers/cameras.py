@@ -32,9 +32,9 @@ async def list_cameras() -> list[dict]:
         502: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
     },
-    summary="Run safety analysis on a camera's video",
+    summary="Run safety analysis on a camera's video with optional staff feedback",
 )
-async def analyze_camera(cam_id: str) -> AnalysisResponse:
+async def analyze_camera(cam_id: str, feedback: dict = None) -> AnalysisResponse:
     cam = next((c for c in CAMERAS if c["id"] == cam_id), None)
     if cam is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Camera {cam_id!r} not found.")
@@ -56,4 +56,4 @@ async def analyze_camera(cam_id: str) -> AnalysisResponse:
         )
         raise HTTPException(status_code=code, detail=msg) from err
 
-    return transformer.transform(raw)
+    return transformer.transform(raw, staff_feedback=feedback)

@@ -33,8 +33,12 @@ export async function getCameras(): Promise<CameraInfo[]> {
   return res.json();
 }
 
-export async function analyzeCamera(camId: string): Promise<AnalysisResult> {
-  const res = await fetch(`${BASE}/cameras/${camId}/analyze`, { method: "POST" });
+export async function analyzeCamera(camId: string, feedback: any): Promise<AnalysisResult> {
+  const res = await fetch(`${BASE}/cameras/${camId}/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(feedback),
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(err.detail ?? "Analysis failed");
