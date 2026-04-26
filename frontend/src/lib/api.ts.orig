@@ -65,38 +65,6 @@ export async function submitFeedback(feedback: {
   }
 }
 
-export async function submitFeedback(feedback: {
-  analysis_id: string;
-  criticality: number;
-  comments: string;
-}): Promise<void> {
-  const res = await fetch(`${BASE}/analyze/feedback`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(feedback),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to submit feedback: ${res.statusText}`);
-  }
-}
-
-export async function submitFeedback(feedback: {
-  analysis_id: string;
-  criticality: number;
-  comments: string;
-}): Promise<void> {
-  const res = await fetch(`${BASE}/analyze/feedback`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(feedback),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to submit feedback: ${res.statusText}`);
-  }
-}
-
 export async function analyzeCamera(camId: string): Promise<AnalysisResult> {
   const res = await fetch(`${BASE}/cameras/${camId}/analyze`, { method: "POST" });
   if (!res.ok) {
