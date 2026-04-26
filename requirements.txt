@@ -1,0 +1,14 @@
+fastapi
+httpx
+ultralytics
+numpy
+opencv-python
+deepface
+pydantic
+fastapi
+httpx
+ultralytics
+numpy
+opencv-python
+deepface
+pydantic
