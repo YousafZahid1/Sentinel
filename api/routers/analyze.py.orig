@@ -46,8 +46,9 @@ async def analyze_video(
 
     try:
         raw = await gemini_client.analyze_video(content, video.filename or "video.mp4", video.content_type or "video/mp4")
-        return transformer.transform(raw)
     except Exception as err:
         msg = str(err)
         code = status.HTTP_502_BAD_GATEWAY if any(t in msg for t in ("HTTP", "Connect", "pipeline")) else status.HTTP_500_INTERNAL_SERVER_ERROR
         raise HTTPException(status_code=code, detail=msg) from err
+
+    return transformer.transform(raw)
