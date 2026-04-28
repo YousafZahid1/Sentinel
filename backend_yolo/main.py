@@ -46,6 +46,10 @@ app.add_middleware(
 STATIC_DIR = BASE_DIR / "static"
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+UPLOAD_DIR = BASE_DIR / "data/uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR = BASE_DIR / "data/outputs"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---------------------------------------------------------------------------
 # Helpers

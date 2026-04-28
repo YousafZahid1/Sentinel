@@ -44,7 +44,8 @@ app.include_router(analyze.router)
 app.include_router(cameras.router)
 
 # Serve raw videos so the frontend <video> element can play them
-_videos_dir = Path(__file__).parent.parent / "videos"
+_videos_dir = Path(__file__).parent.parent / "data/videos"
+_videos_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/videos", StaticFiles(directory=str(_videos_dir)), name="videos")
 
 
