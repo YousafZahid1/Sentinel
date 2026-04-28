@@ -28,9 +28,16 @@ export interface AnalysisResult {
 }
 
 export async function getCameras(): Promise<CameraInfo[]> {
-  const res = await fetch(`${BASE}/cameras`);
-  if (!res.ok) throw new Error("Failed to fetch camera list");
-  return res.json();
+  try {
+    const res = await fetch(`${BASE}/cameras`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch camera list: ${res.statusText}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error("Error fetching cameras:", error);
+    throw error;
+  }
 }
 
 export async function analyzeCamera(camId: string): Promise<AnalysisResult> {
