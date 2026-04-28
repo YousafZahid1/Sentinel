@@ -3,24 +3,19 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, status
 
 from api.models.response import AnalysisResponse, ErrorResponse
-from api.services import gemini_client, transformer
+from api.services import gemini_client, transformer, camera_config
 
 router = APIRouter(prefix="/cameras", tags=["Cameras"])
 
 VIDEOS_DIR = Path(__file__).parent.parent.parent / "videos"
 
-CAMERAS = [
-    {"id": "CAM-01", "filename": "video_01.mov"},
-    {"id": "CAM-02", "filename": "video_02.mov"},
-    {"id": "CAM-03", "filename": "video_03.mov"},
-]
-
 
 @router.get("", summary="List available cameras and their video URLs")
 async def list_cameras() -> list[dict]:
+    cameras = camera_config.get_camera_config()
     return [
         {"id": c["id"], "video_url": f"/videos/{c['filename']}"}
-        for c in CAMERAS
+        for c in cameras
     ]
 
 
@@ -35,7 +30,8 @@ async def list_cameras() -> list[dict]:
     summary="Run safety analysis on a camera's video",
 )
 async def analyze_camera(cam_id: str) -> AnalysisResponse:
-    cam = next((c for c in CAMERAS if c["id"] == cam_id), None)
+    cameras = camera_config.get_camera_config()
+    cam = next((c for c in cameras if c["id"] == cam_id), None)
     if cam is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Camera {cam_id!r} not found.")
 
