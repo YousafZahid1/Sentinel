@@ -37,7 +37,22 @@ export async function analyzeCamera(camId: string): Promise<AnalysisResult> {
   const res = await fetch(`${BASE}/cameras/${camId}/analyze`, { method: "POST" });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail ?? "Analysis failed");
+    throw new Error(err.detail || "Analysis failed");
   }
   return res.json();
+}
+export interface StaffFeedback {
+  criticality: number;
+  comments: string;
+}
+
+export async function submitFeedback(feedback: StaffFeedback): Promise<void> {
+  const res = await fetch(`${BASE}/analyze/feedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(feedback),
+  });
+  if (!res.ok) {
+    throw new Error("Failed to submit feedback");
+  }
 }
