@@ -1,0 +1,11 @@
+# Remove unittest from requirements.txt if it exists
+aiofiles
+fastapi
+httpx
+numpy
+opencv-python
+pydantic
+python-dotenv
+ultralytics
+uvicorn
+python-multipart
