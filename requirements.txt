@@ -1,0 +1,10 @@
+aiofiles
+fastapi
+httpx
+numpy
+opencv-python
+pydantic
+python-dotenv
+ultralytics
+uvicorn
+python-multipart

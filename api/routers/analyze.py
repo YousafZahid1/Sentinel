@@ -1,9 +1,16 @@
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from pydantic import BaseModel
+import logging
 
 from api.models.response import AnalysisResponse, ErrorResponse
 from api.services import gemini_client, transformer
+
+class StaffFeedback(BaseModel):
+    camera_id: str
+    situation_criticality: int
+    comments: str = ""
 
 router = APIRouter(prefix="/analyze", tags=["Analysis"])
 
@@ -52,3 +59,9 @@ async def analyze_video(
         raise HTTPException(status_code=code, detail=msg) from err
 
     return transformer.transform(raw)
+
+@router.post("/feedback", summary="Submit staff feedback on situation criticality")
+async def submit_feedback(feedback: StaffFeedback) -> dict:
+    logger = logging.getLogger('sentinel.feedback')
+    logger.info(f"Received feedback for camera {feedback.camera_id}: criticality={feedback.situation_criticality}, comments={feedback.comments}")
+    return {"message": "Feedback submitted successfully"}
