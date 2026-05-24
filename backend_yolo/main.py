@@ -25,11 +25,11 @@ from detect import run_yolo_on_video
 # ---------------------------------------------------------------------------
 # Directories
 # ---------------------------------------------------------------------------
-BASE_DIR    = Path(__file__).parent
+BASE_DIR    = Path("/app/data")
 UPLOAD_DIR  = BASE_DIR / "uploads"
 OUTPUT_DIR  = BASE_DIR / "outputs"
-UPLOAD_DIR.mkdir(exist_ok=True)
-OUTPUT_DIR.mkdir(exist_ok=True)
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---------------------------------------------------------------------------
 # App
