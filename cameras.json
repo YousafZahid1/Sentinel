@@ -1,0 +1,22 @@
+[
+  {
+    "id": "CAM-01",
+    "label": "Camera 01",
+    "filename": "video_01.mov"
+  },
+  {
+    "id": "CAM-02",
+    "label": "Camera 02",
+    "filename": "video_02.mov"
+  },
+  {
+    "id": "CAM-03",
+    "label": "Camera 03",
+    "filename": "video_03.mov"
+  },
+  {
+    "id": "CAM-04",
+    "label": "testing",
+    "filename": "video_cam_04.mov"
+  }
+]

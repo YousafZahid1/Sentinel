@@ -58,7 +58,7 @@ const topZones = [
 ];
 
 const OpsCenter = () => {
-  const { cameras, alerts: liveAlerts } = useCameras();
+  const { cameras, alerts: liveAlerts, addCamera, removeCamera } = useCameras();
 
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -169,7 +169,7 @@ const OpsCenter = () => {
         {/* Left: Cameras — hidden in focus mode */}
         {!focusMode && (
           <div className="w-[220px] flex-shrink-0 border-r border-mc-panel-border">
-            <CameraPanel cameras={cameras} />
+            <CameraPanel cameras={cameras} onAddCamera={addCamera} onRemoveCamera={removeCamera} />
           </div>
         )}
 

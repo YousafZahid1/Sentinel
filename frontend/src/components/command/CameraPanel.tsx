@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { AlertTriangle, Maximize2, MapPin, Activity, Loader2, WifiOff, ShieldCheck, ShieldAlert, ShieldX } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, Maximize2, MapPin, Activity, Loader2, WifiOff, ShieldCheck, ShieldAlert, ShieldX, Plus, Upload, X, Trash2 } from "lucide-react";
 import type { CameraState } from "@/hooks/useCameras";
 
 // Deterministic trust state per camera id
@@ -32,11 +32,19 @@ const TrustBadge = ({ id, status }: { id: string; status: CameraState["status"] 
 
 interface CameraPanelProps {
   cameras: CameraState[];
+  onAddCamera?: (label: string, file: File) => Promise<unknown>;
+  onRemoveCamera?: (camId: string) => Promise<void>;
 }
 
-const CameraPanel = ({ cameras }: CameraPanelProps) => {
+const CameraPanel = ({ cameras, onAddCamera, onRemoveCamera }: CameraPanelProps) => {
   const [time, setTime] = useState(new Date());
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [label, setLabel] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const iv = setInterval(() => setTime(new Date()), 1000);
@@ -46,11 +54,98 @@ const CameraPanel = ({ cameras }: CameraPanelProps) => {
   const ts = time.toLocaleTimeString("en-US", { hour12: false });
   const liveCount = cameras.filter((c) => c.status !== "error").length;
 
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!file || !label.trim() || !onAddCamera) return;
+    setAdding(true);
+    setAddError(null);
+    try {
+      await onAddCamera(label.trim(), file);
+      setDialogOpen(false);
+      setLabel("");
+      setFile(null);
+    } catch (err) {
+      setAddError(String(err));
+    } finally {
+      setAdding(false);
+    }
+  }
+
   return (
     <div className="mc-panel h-full flex flex-col">
+      {/* Add Camera Dialog */}
+      {dialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="mc-panel w-80 border border-mc-panel-border shadow-2xl">
+            <div className="mc-panel-header flex items-center justify-between">
+              <span className="mc-panel-label text-mc-cyan">Connect Camera</span>
+              <button onClick={() => { setDialogOpen(false); setAddError(null); }}>
+                <X className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+              </button>
+            </div>
+            <form onSubmit={handleAdd} className="p-4 space-y-3">
+              <div className="space-y-1">
+                <label className="font-mono text-[9px] text-muted-foreground uppercase tracking-wider">Camera Label</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Entrance Lobby"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  className="w-full h-8 px-2 bg-mc-surface border border-mc-panel-border font-mono text-[11px] text-foreground focus:outline-none focus:border-mc-cyan/50"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="font-mono text-[9px] text-muted-foreground uppercase tracking-wider">Video File</label>
+                <div
+                  className="relative h-12 border border-dashed border-mc-panel-border bg-mc-surface flex items-center justify-center cursor-pointer hover:border-mc-cyan/40 transition-colors"
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept=".mp4,.mov,.webm,video/*"
+                    required
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  />
+                  <div className="flex items-center gap-2 pointer-events-none">
+                    <Upload className="w-3 h-3 text-mc-cyan" />
+                    <span className="font-mono text-[9px] text-muted-foreground">
+                      {file ? file.name : "Click to upload mp4 / mov / webm"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              {addError && (
+                <p className="font-mono text-[8px] text-mc-red">{addError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={adding || !file || !label.trim()}
+                className="w-full h-8 bg-mc-cyan text-background font-mono text-[10px] font-bold tracking-widest disabled:opacity-40 hover:bg-mc-cyan/90 transition-colors flex items-center justify-center gap-1"
+              >
+                {adding ? <><Loader2 className="w-3 h-3 animate-spin" /> UPLOADING…</> : "ADD CAMERA"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="mc-panel-header">
         <span className="mc-panel-label">Camera Feeds</span>
-        <span className="font-mono text-[9px] text-mc-green">{liveCount} LIVE</span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[9px] text-mc-green">{liveCount} LIVE</span>
+          {onAddCamera && (
+            <button
+              onClick={() => setDialogOpen(true)}
+              className="flex items-center gap-0.5 font-mono text-[8px] text-mc-cyan border border-mc-cyan/30 px-1.5 py-0.5 hover:bg-mc-cyan/10 transition-colors"
+            >
+              <Plus className="w-2.5 h-2.5" />
+              Connect Camera
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-1 space-y-1">
@@ -155,10 +250,10 @@ const CameraPanel = ({ cameras }: CameraPanelProps) => {
               {/* Info strip */}
               <div className="px-1.5 py-1 flex items-center justify-between bg-mc-surface border-t border-mc-panel-border">
                 <div className="flex items-center gap-1">
-                  <span className="font-mono text-[8px] text-muted-foreground truncate">{cam.id}</span>
+                  <span className="font-mono text-[8px] text-muted-foreground truncate">{cam.label || cam.id}</span>
                   <TrustBadge id={cam.id} status={cam.status} />
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   {cam.status === "done" && (
                     <>
                       <div className="w-8 h-1 bg-background overflow-hidden">
@@ -177,6 +272,15 @@ const CameraPanel = ({ cameras }: CameraPanelProps) => {
                   )}
                   {cam.status === "error" && (
                     <span className="font-mono text-[8px] text-mc-red">no data</span>
+                  )}
+                  {onRemoveCamera && (
+                    <button
+                      title="Remove camera"
+                      onClick={(e) => { e.stopPropagation(); onRemoveCamera(cam.id); }}
+                      className="ml-1 p-0.5 text-muted-foreground hover:text-mc-red transition-colors"
+                    >
+                      <Trash2 className="w-2.5 h-2.5" />
+                    </button>
                   )}
                 </div>
               </div>
