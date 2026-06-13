@@ -13,10 +13,5 @@
     "id": "CAM-03",
     "label": "Camera 03",
     "filename": "video_03.mov"
-  },
-  {
-    "id": "CAM-04",
-    "label": "testing",
-    "filename": "video_cam_04.mov"
   }
 ]
