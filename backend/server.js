@@ -205,6 +205,96 @@ Start with { and end with }. No markdown. No code fences. No text before or afte
   }
 }`;
 
+// Hard-enforce risk minimums the LLM frequently ignores.
+// The LLM sets the narrative; this sets the floor.
+function enforceRiskFloors(parsed) {
+  const outcome = parsed?.prediction_next_5_10s?.likely_outcome ?? "";
+  const movements = [
+    ...(parsed?.per_person ?? []).map((p) => p.overall_movement ?? ""),
+    ...(parsed?.per_person ?? []).flatMap((p) => p.notable_cues ?? []),
+    ...(parsed?.timeline ?? []).flatMap((t) => t.observations ?? []),
+  ].join(" ").toLowerCase();
+
+  const isFall =
+    outcome.includes("fall") ||
+    movements.includes("falling") ||
+    movements.includes("on_ground") ||
+    movements.includes("fell") ||
+    movements.includes("stair") ||
+    movements.includes("tumbl") ||
+    movements.includes("tripped");
+
+  const isUnresponsive =
+    movements.includes("motionless") ||
+    movements.includes("unresponsive") ||
+    movements.includes("not moving") ||
+    movements.includes("unconscious");
+
+  const isMedical =
+    outcome === "medical_event_likely" ||
+    movements.includes("clutching chest") ||
+    movements.includes("seizure") ||
+    movements.includes("cardiac");
+
+  const isWeapon =
+    movements.includes("weapon") ||
+    movements.includes("knife") ||
+    movements.includes("firearm") ||
+    movements.includes("gun");
+
+  const isCameraEvasion =
+    (parsed?.clip_summary?.camera_evasion_flags ?? []).length > 0;
+
+  const isRegulatedSport =
+    parsed?.clip_summary?.scene_type === "regulated_sport" ||
+    parsed?.clip_summary?.authenticity === "staged";
+
+  let floor = 0;
+  if (isRegulatedSport) {
+    floor = 0; // Never force up for regulated sport
+  } else {
+    if (isFall) floor = Math.max(floor, 0.72);
+    if (outcome === "fall_with_serious_injury") floor = Math.max(floor, 0.88);
+    if (outcome === "fall_with_minor_injury") floor = Math.max(floor, 0.72);
+    if (isUnresponsive) floor = Math.max(floor, 0.88);
+    if (isMedical) floor = Math.max(floor, 0.82);
+    if (isWeapon) floor = Math.max(floor, 0.90);
+    if (isCameraEvasion) floor = Math.max(floor, (parsed.overall_fight_risk_0_1 ?? 0) + 0.15);
+  }
+
+  if (floor > 0 && (parsed.overall_fight_risk_0_1 ?? 0) < floor) {
+    parsed.overall_fight_risk_0_1 = Math.min(floor, 1.0);
+
+    // Also floor the timeline segments that triggered this
+    for (const seg of parsed.timeline ?? []) {
+      if (seg.fight_risk_0_1 < floor) seg.fight_risk_0_1 = floor;
+    }
+
+    // Upgrade recommended_action if score now demands it
+    const score = parsed.overall_fight_risk_0_1;
+    const current = parsed.recommended_action?.action ?? "ignore";
+    if (score >= 0.80 && current !== "escalate_security") {
+      parsed.recommended_action = {
+        action: "escalate_security",
+        why: [
+          ...(parsed.recommended_action?.why ?? []),
+          "Risk floor enforced — immediate response required.",
+        ],
+      };
+    } else if (score >= 0.45 && current === "ignore") {
+      parsed.recommended_action = {
+        action: "notify_staff",
+        why: [
+          ...(parsed.recommended_action?.why ?? []),
+          "Risk floor enforced — staff notification required.",
+        ],
+      };
+    }
+  }
+
+  return parsed;
+}
+
 function extractFrames(videoPath, frameDir, maxFrames = 8) {
   fs.mkdirSync(frameDir, { recursive: true });
   try {
@@ -293,7 +383,8 @@ async function analyzeWithLlama(apiKey, videoPath) {
     const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) raw = jsonMatch[1].trim();
 
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return enforceRiskFloors(parsed);
   } finally {
     cleanupDir(frameDir);
   }

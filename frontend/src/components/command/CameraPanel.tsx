@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Maximize2, MapPin, Activity, Loader2, WifiOff, ShieldCheck, ShieldAlert, ShieldX, Plus, Upload, X, Trash2 } from "lucide-react";
+import { AlertTriangle, Maximize2, MapPin, Activity, Loader2, WifiOff, ShieldCheck, ShieldAlert, ShieldX, Plus, Upload, X, Trash2, RefreshCw } from "lucide-react";
 import type { CameraState } from "@/hooks/useCameras";
 
 // Deterministic trust state per camera id
@@ -34,9 +34,10 @@ interface CameraPanelProps {
   cameras: CameraState[];
   onAddCamera?: (label: string, file: File) => Promise<unknown>;
   onRemoveCamera?: (camId: string) => Promise<void>;
+  onReanalyze?: (camId: string) => void;
 }
 
-const CameraPanel = ({ cameras, onAddCamera, onRemoveCamera }: CameraPanelProps) => {
+const CameraPanel = ({ cameras, onAddCamera, onRemoveCamera, onReanalyze }: CameraPanelProps) => {
   const [time, setTime] = useState(new Date());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -273,11 +274,20 @@ const CameraPanel = ({ cameras, onAddCamera, onRemoveCamera }: CameraPanelProps)
                   {cam.status === "error" && (
                     <span className="font-mono text-[8px] text-mc-red">no data</span>
                   )}
+                  {onReanalyze && cam.status !== "analyzing" && (
+                    <button
+                      title="Re-analyze"
+                      onClick={(e) => { e.stopPropagation(); onReanalyze(cam.id); }}
+                      className="p-0.5 text-muted-foreground hover:text-mc-cyan transition-colors"
+                    >
+                      <RefreshCw className="w-2.5 h-2.5" />
+                    </button>
+                  )}
                   {onRemoveCamera && (
                     <button
                       title="Remove camera"
                       onClick={(e) => { e.stopPropagation(); onRemoveCamera(cam.id); }}
-                      className="ml-1 p-0.5 text-muted-foreground hover:text-mc-red transition-colors"
+                      className="p-0.5 text-muted-foreground hover:text-mc-red transition-colors"
                     >
                       <Trash2 className="w-2.5 h-2.5" />
                     </button>

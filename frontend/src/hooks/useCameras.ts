@@ -199,7 +199,16 @@ export function useCameras() {
     setCameras((prev) => prev.filter((c) => c.id !== camId));
   }, []);
 
+  const reanalyzeCamera = useCallback((camId: string) => {
+    clearCacheEntry(camId);
+    setCameras((prev) =>
+      prev.map((c) => (c.id === camId ? { ...c, status: "analyzing" as const, result: undefined, alert: undefined } : c))
+    );
+    const cam = cameras.find((c) => c.id === camId);
+    if (cam) runAnalysis(cam, setCameras);
+  }, [cameras]);
+
   const alerts = cameras.filter((c) => c.alert).map((c) => c.alert!);
 
-  return { cameras, alerts, addCamera, removeCamera };
+  return { cameras, alerts, addCamera, removeCamera, reanalyzeCamera };
 }
